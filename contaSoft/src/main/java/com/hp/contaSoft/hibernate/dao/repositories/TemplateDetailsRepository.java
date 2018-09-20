@@ -8,11 +8,11 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.hp.contaSoft.hibernate.entities.IUT;
-import com.hp.contaSoft.hibernate.entities.TemplateDetails;
+import com.hp.contaSoft.hibernate.entities.TemplateDefiniton;
 
 
 @Repository
-public interface TemplateDetailsRepository extends CrudRepository<TemplateDetails, Long>
+public interface TemplateDetailsRepository extends CrudRepository<TemplateDefiniton, Long>
 {
 
 	

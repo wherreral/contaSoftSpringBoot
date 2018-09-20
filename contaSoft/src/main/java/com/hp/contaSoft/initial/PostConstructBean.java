@@ -26,7 +26,7 @@ import com.hp.contaSoft.hibernate.entities.Address;
 import com.hp.contaSoft.hibernate.entities.HealthFactors;
 import com.hp.contaSoft.hibernate.entities.Taxpayer;
 import com.hp.contaSoft.hibernate.entities.Template;
-import com.hp.contaSoft.hibernate.entities.TemplateDetails;
+import com.hp.contaSoft.hibernate.entities.TemplateDefiniton;
 import com.hp.contaSoft.hibernate.entities.IUT;
 import com.hp.contaSoft.hibernate.entities.Subsidiary;
 
@@ -85,13 +85,13 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 			iUTRepository.save(new IUT("MENSUAL", 3341030.00d, 6341030.00d, 0.135d,  214303.21d, 7.09d));
 			
 			
-			templateDetailsRepository.save(new TemplateDetails("RUT","Rut del empleado",true, true));
-			templateDetailsRepository.save(new TemplateDetails("CENTRO_COSTO","Alias de la sucursal",true, true));
-			templateDetailsRepository.save(new TemplateDetails("SUELDO_BASE","Sueldo base del empleado",true, true));
-			templateDetailsRepository.save(new TemplateDetails("DT","Dias trabajados por el empleados en la sucursal",true, true));
-			templateDetailsRepository.save(new TemplateDetails("PREVISION","Nombre de la organizacion previsional afiliada al empleado",true, true));
-			templateDetailsRepository.save(new TemplateDetails("SALUD","Nombre de la organizacion de salud afiliada al empleado",true, true));
-			templateDetailsRepository.save(new TemplateDetails("SALUD_PORCENTAJE","% que el empleado aporta a la organizacion de salud",true, true));
+			templateDetailsRepository.save(new TemplateDefiniton("RUT","Rut del empleado",true, true));
+			templateDetailsRepository.save(new TemplateDefiniton("CENTRO_COSTO","Alias de la sucursal",true, true));
+			templateDetailsRepository.save(new TemplateDefiniton("SUELDO_BASE","Sueldo base del empleado",true, true));
+			templateDetailsRepository.save(new TemplateDefiniton("DT","Dias trabajados por el empleados en la sucursal",true, true));
+			templateDetailsRepository.save(new TemplateDefiniton("PREVISION","Nombre de la organizacion previsional afiliada al empleado",true, true));
+			templateDetailsRepository.save(new TemplateDefiniton("SALUD","Nombre de la organizacion de salud afiliada al empleado",true, true));
+			templateDetailsRepository.save(new TemplateDefiniton("SALUD_PORCENTAJE","% que el empleado aporta a la organizacion de salud",true, true));
 			
 			
 			/**Initial load*/

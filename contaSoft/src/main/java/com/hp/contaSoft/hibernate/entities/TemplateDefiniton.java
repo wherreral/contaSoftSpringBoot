@@ -15,7 +15,10 @@ import lombok.ToString;
 @Getter
 @Setter
 @ToString
-public class TemplateDetails extends Base{
+public class TemplateDefiniton extends Base{
+	
+	@Column
+	private String templateType;
 	
 	@Column
 	private String fieldName;
@@ -29,11 +32,11 @@ public class TemplateDetails extends Base{
 	@Column
 	private boolean required;
 	
-	public TemplateDetails() {
+	public TemplateDefiniton() {
 		
 	}
 
-	public TemplateDetails(String fieldName, String fieldDescription, boolean active, boolean required) {
+	public TemplateDefiniton(String fieldName, String fieldDescription, boolean active, boolean required) {
 		super();
 		this.fieldName = fieldName;
 		this.fieldDescription = fieldDescription;
