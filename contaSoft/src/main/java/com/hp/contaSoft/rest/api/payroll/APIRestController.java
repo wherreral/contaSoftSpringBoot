@@ -23,10 +23,11 @@ import com.hp.contaSoft.hibernate.dao.repositories.TemplateDetailsRepository;
 import com.hp.contaSoft.hibernate.entities.PayBookInstance;
 import com.hp.contaSoft.hibernate.entities.Taxpayer;
 import com.hp.contaSoft.hibernate.entities.TemplateDefiniton;
+import com.hp.contaSoft.rest.api.form.LoginForm;
 import com.hp.contaSoft.rest.api.payroll.exception.ClientNotFoundException;
 
 @RestController
-//@CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
+@CrossOrigin(origins = "http://localhost:3000", maxAge = 3600)
 @RequestMapping("/api")
 public class APIRestController {
 
@@ -123,4 +124,21 @@ public class APIRestController {
 		Iterable<TemplateDefiniton> templates = templateDetailsRepository.findAll();
 		return templates;
 	}
+	
+	
+	
+	@PostMapping("/login")
+	public String login(@RequestBody  LoginForm data) {
+		
+		
+		System.out.println("AQUI");
+		
+		logger.warn(data.toString());
+		logger.warn(data.getUsername());
+		logger.warn(data.getPassword());
+		
+		
+		return "test";
+	}
+	
 }

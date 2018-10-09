@@ -14,6 +14,9 @@ public class Subsidiary extends Base{
 	@Column
 	private String name;
 	
+	@Column
+	private String nickname;
+	
 	@JsonBackReference
 	@ManyToOne
 	@JoinColumn(name="taxpayer_id")

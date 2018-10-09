@@ -1,38 +1,24 @@
 package com.hp.contaSoft.spring.controller;
 
-import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.Reader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.swing.plaf.synth.SynthSplitPaneUI;
 
-import org.apache.commons.collections4.IteratorUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 //import org.apache.poi.util.SystemOutLogger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.SystemPropertyUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.multipart.commons.CommonsMultipartFile;
 
 import com.hp.contaSoft.excel.entities.PayBookDetails;
-import com.hp.contaSoft.excel.entities.Paybook;
 import com.hp.contaSoft.hibernate.dao.projection.PrevisionProjection;
 import com.hp.contaSoft.hibernate.dao.repositories.AFPFactorsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.AddressRepository;
@@ -46,20 +32,9 @@ import com.hp.contaSoft.hibernate.entities.AFPFactors;
 import com.hp.contaSoft.hibernate.entities.Address;
 import com.hp.contaSoft.hibernate.entities.IUT;
 import com.hp.contaSoft.hibernate.entities.PayBookInstance;
-import com.hp.contaSoft.hibernate.entities.Subsidiary;
 import com.hp.contaSoft.hibernate.entities.Taxpayer;
-import com.hp.contaSoft.hibernate.entities.Template;
 import com.hp.contaSoft.pipeline.PipelineManager;
 import com.hp.contaSoft.pipeline.Error.PipelineMessage;
-
-import com.opencsv.CSVReader;
-import com.opencsv.bean.ColumnPositionMappingStrategy;
-import com.opencsv.bean.CsvToBean;
-import com.opencsv.bean.CsvToBeanBuilder;
-import com.opencsv.bean.HeaderColumnNameMappingStrategy;
-import com.opencsv.exceptions.CsvException;
-
-import ch.qos.logback.core.net.SyslogOutputStream;
 
 
 
@@ -253,7 +228,10 @@ public class TestController {
 		return "charges";
 	}
 	
+	
+	
 	@RequestMapping("/")
+	//@Secured("ROLE_TELLER")
 	public String doTest(HttpServletRequest request, Model model) {
 		
 		logger.debug("Method '/'");
