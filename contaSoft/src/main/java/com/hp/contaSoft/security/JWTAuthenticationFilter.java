@@ -1,4 +1,4 @@
-package com.hp.contSoft.security;
+package com.hp.contaSoft.security;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,11 +19,11 @@ import com.auth0.jwt.JWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.contaSoft.hibernate.entities.AppUser;
 
-import static com.hp.contSoft.security.SecurityConstants.EXPIRATION_TIME;
-import static com.hp.contSoft.security.SecurityConstants.HEADER_STRING;
-import static com.hp.contSoft.security.SecurityConstants.SECRET;
-import static com.hp.contSoft.security.SecurityConstants.TOKEN_PREFIX;
 import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
+import static com.hp.contaSoft.security.SecurityConstants.EXPIRATION_TIME;
+import static com.hp.contaSoft.security.SecurityConstants.HEADER_STRING;
+import static com.hp.contaSoft.security.SecurityConstants.SECRET;
+import static com.hp.contaSoft.security.SecurityConstants.TOKEN_PREFIX;
 
 public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter{
 

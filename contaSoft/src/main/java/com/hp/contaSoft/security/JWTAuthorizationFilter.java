@@ -1,4 +1,9 @@
-package com.hp.contSoft.security;
+package com.hp.contaSoft.security;
+
+import static com.hp.contaSoft.security.SecurityConstants.EXPIRATION_TIME;
+import static com.hp.contaSoft.security.SecurityConstants.HEADER_STRING;
+import static com.hp.contaSoft.security.SecurityConstants.SECRET;
+import static com.hp.contaSoft.security.SecurityConstants.TOKEN_PREFIX;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -15,12 +20,6 @@ import org.springframework.security.web.authentication.www.BasicAuthenticationFi
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-
-
-import static com.hp.contSoft.security.SecurityConstants.EXPIRATION_TIME;
-import static com.hp.contSoft.security.SecurityConstants.HEADER_STRING;
-import static com.hp.contSoft.security.SecurityConstants.SECRET;
-import static com.hp.contSoft.security.SecurityConstants.TOKEN_PREFIX;
 
 
 public class JWTAuthorizationFilter extends BasicAuthenticationFilter{

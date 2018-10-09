@@ -1,4 +1,4 @@
-package com.hp.contSoft.security;
+package com.hp.contaSoft.security;
 
 public class SecurityConstants {
 	  	public static final String SECRET = "SecretKeyToGenJWTs";
