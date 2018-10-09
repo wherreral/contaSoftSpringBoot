@@ -1,6 +1,7 @@
 package com.hp.contaSoft.configuration;
 
 import static com.hp.contaSoft.security.SecurityConstants.SIGN_UP_URL;
+import static com.hp.contaSoft.security.SecurityConstants.SIGN_IN_URL;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpMethod;
@@ -37,6 +38,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     protected void configure(HttpSecurity http) throws Exception {
         http.cors().and().csrf().disable().authorizeRequests()
                 .antMatchers(HttpMethod.POST, SIGN_UP_URL).permitAll()
+                .antMatchers(HttpMethod.POST, SIGN_IN_URL).permitAll()
+                //.antMatchers("/login").permitAll()
                 .anyRequest().authenticated()
                 .and()
                 .addFilter(new JWTAuthenticationFilter(authenticationManager()))

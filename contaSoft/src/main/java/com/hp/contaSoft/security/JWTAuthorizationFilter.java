@@ -1,6 +1,7 @@
 package com.hp.contaSoft.security;
 
 import static com.hp.contaSoft.security.SecurityConstants.EXPIRATION_TIME;
+
 import static com.hp.contaSoft.security.SecurityConstants.HEADER_STRING;
 import static com.hp.contaSoft.security.SecurityConstants.SECRET;
 import static com.hp.contaSoft.security.SecurityConstants.TOKEN_PREFIX;
@@ -33,7 +34,7 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter{
 	                                    HttpServletResponse res,
 	                                    FilterChain chain) throws IOException, ServletException {
 	        String header = req.getHeader(HEADER_STRING);
-
+	        System.out.println(header);
 	        if (header == null || !header.startsWith(TOKEN_PREFIX)) {
 	            chain.doFilter(req, res);
 	            return;

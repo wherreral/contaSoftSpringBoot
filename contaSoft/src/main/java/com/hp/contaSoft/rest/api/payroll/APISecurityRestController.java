@@ -43,10 +43,10 @@ public class APISecurityRestController {
 	public Logger logger = LoggerFactory.getLogger(APISecurityRestController.class);
 	
 	@CrossOrigin("http://localhost:3000")
-	@PostMapping("/sing-up")
-	public Boolean SingUp(@RequestBody AppUser user) {
+	@PostMapping("/sign-up")
+	public Boolean SignUp(@RequestBody AppUser user) {
 		
-		logger.warn("sing-up");
+		logger.warn("sign-up");
 		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
 		userRepository.save(user);
 
@@ -55,10 +55,10 @@ public class APISecurityRestController {
 	}
 	
 	@CrossOrigin("http://localhost:3000")
-	@PostMapping("/sing-in")
-	public Boolean SingIn(@RequestBody AppUser user) {
+	@PostMapping("/sign-in")
+	public Boolean SignIn(@RequestBody AppUser user) {
 		
-		logger.warn("SingIn");
+		logger.warn("SignIn");
 		//logger.warn(user);
 		//logger.warn(password);
 		
