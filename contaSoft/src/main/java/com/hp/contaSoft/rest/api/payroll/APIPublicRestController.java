@@ -20,7 +20,7 @@ import com.hp.contaSoft.hibernate.entities.AppUser;
 
 @RestController
 @RequestMapping("/public/api/")
-public class APISecurityRestController {
+public class APIPublicRestController {
 
 	@Autowired
 	UserRepository userRepository;
@@ -40,7 +40,7 @@ public class APISecurityRestController {
 	@Autowired
 	private BCryptPasswordEncoder bCryptPasswordEncoder;
 	
-	public Logger logger = LoggerFactory.getLogger(APISecurityRestController.class);
+	public Logger logger = LoggerFactory.getLogger(APIPublicRestController.class);
 	
 	@CrossOrigin("http://localhost:3000")
 	@PostMapping("/sign-up")

@@ -10,12 +10,15 @@ import ch.qos.logback.core.net.SyslogOutputStream;
 public class Test4 {
 
 	public static void main(String[] args) throws InterruptedException, ExecutionException {
-		new Thread(new ParallelTask(1)).start();
-		new Thread(new ParallelTask(2)).start();
+		
 		
 		ExecutorService service = null;
 		
 		try {
+			
+			new Thread(new ParallelTask(1)).start();
+			new Thread(new ParallelTask(2)).start();
+			
 			//service = Executors.newSingleThreadExecutor();
 			service = Executors.newFixedThreadPool(4);
 			System.out.println("begin");
