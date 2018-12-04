@@ -1,16 +1,17 @@
 package com.hp.contaSoft.spring.controller;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 //import org.apache.poi.util.SystemOutLogger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -93,6 +94,103 @@ public class TestController {
 		
 		return "chargesDetails";
 	}
+
+	@RequestMapping("/redirectImportBook")
+    public void redirectImportBook(
+    		HttpServletRequest request,
+    		HttpServletResponse response,
+            @RequestParam MultipartFile[] fileUpload,
+            Model model
+    		) {
+         
+		try {
+		
+        System.out.println("description: " + request.getParameter("description"));
+        
+        if (fileUpload != null && fileUpload.length > 0) {
+            for (MultipartFile aFile : fileUpload){
+                 
+                System.out.println("Procesing File: " + aFile.getOriginalFilename());
+                
+                InputStream is = aFile.getInputStream();
+                InputStream is2 = aFile.getInputStream();
+                
+                /***
+                 * Start Validation Pipeline
+                 * 0.Validate file name
+                 * 1.Validate Headers
+                 * 2.Create PayBookInstance
+                 * 3.Process csv file
+                 * 4.Create PayBookDetail
+                 * 5.Calculate Fields NEED TO ADD
+                 */
+                
+                System.out.println("START PIPELINE");
+                
+                // set pipeline message
+                pipelineMessageInput.setFileNameInput(aFile.getOriginalFilename());
+                pipelineMessageInput.setIsInput(is);
+                pipelineMessageInput.setIsInput2(is2);
+                
+                //set chain name to execute
+                pm.setChainName("UploadPayrollFile");
+                
+                pipelineMessageOutput =  pm.execute( pipelineMessageInput);
+                
+                if(pipelineMessageOutput.isValid())
+                {
+                	//return succesfull
+                	System.out.println("PIPELINE final VALIDO");
+                }
+                else {
+                	//return error
+                	System.out.println("PIPELINE final INVALIDO");
+                }
+
+                
+                
+                	
+	            /**
+	             * Return to the view
+	             */
+                //List of Taxpayers for the view
+                //TaxpayerRepositoryImpl taxpayerRepository = new TaxpayerRepositoryImpl();
+                //List<Taxpayer> taxpayers = taxpayerRepository.getListAll();
+                List<Taxpayer> taxpayers = (List<Taxpayer>) taxpayerRepository.findAll();
+    			model.addAttribute("taxpayers",taxpayers);
+            }
+            
+                    
+                        
+            
+            
+            
+        }
+        	// redirect to
+        	response.sendRedirect("http://localhost:3000/dashboard/");
+	        
+	        
+	        
+		}catch(Exception e)
+		{
+			//System.out.println(e.getMessage().toString());
+			e.printStackTrace();
+			System.out.println(e.getLocalizedMessage());
+			
+			System.out.println("Entre ACA");
+			
+			
+			// redirect to
+        	try {
+				response.sendRedirect("http://localhost:3000/dashboard/");
+			} catch (IOException e1) {
+				// TODO Auto-generated catch block
+				e1.printStackTrace();
+			}
+		}
+    }
+	
+	
 	
 	@RequestMapping("/importBook2")
     public String handleFileUpload(
