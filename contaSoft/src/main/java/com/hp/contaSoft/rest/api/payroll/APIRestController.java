@@ -88,14 +88,22 @@ public class APIRestController {
 	}
 	
 	
+	@GetMapping("/paybookinstance/{clientId}")
+	public List<PayBookInstance>getPaybookInstanceById(@PathVariable Long clientId) {
+		
+		List<PayBookInstance> payBookInstanceList = (List<PayBookInstance>)payBookInstanceRepository.findAllByTaxpayerId(clientId);
+		
+		return payBookInstanceList;
+	}
 	
-	@GetMapping("/paybookinstance/{clientRut}")
+	
+	/*@GetMapping("/paybookinstance/{clientRut}")
 	public List<PayBookInstance>getPaybookinstance(@PathVariable String clientRut) {
 		
 		List<PayBookInstance> payBookInstanceList = (List<PayBookInstance>)payBookInstanceRepository.findAllByRut(clientRut);
 		
 		return payBookInstanceList;
-	}
+	}*/
 	
 	/**
 	 * Add/Update client template
