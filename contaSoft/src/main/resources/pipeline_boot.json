@@ -1,0 +1,46 @@
+{
+"pipelinemanager":[  
+    {
+     "name":"UploadPayrollFile", 
+     "pipelinechain": [
+    		{  
+     	   		"name":"com.hp.contaSoft.pipeline.chain.processor.ValidateFileNameProcessor",
+	     	    "link":"com.hp.contaSoft.pipeline.chain.processor.ValidateFileHeadersProcessor"
+    		},
+			{  
+     	   		"name":"com.hp.contaSoft.pipeline.chain.processor.ValidateFileHeadersProcessor",
+	     	    "link":"com.hp.contaSoft.pipeline.chain.processor.InsertPayBookInstanceProcessor"
+    		},
+			{
+				"name":"com.hp.contaSoft.pipeline.chain.processor.InsertPayBookInstanceProcessor",
+				"link":"com.hp.contaSoft.pipeline.chain.processor.ProcessCSVFileProcessor"
+			},
+			{
+				"name":"com.hp.contaSoft.pipeline.chain.processor.ProcessCSVFileProcessor",
+				"link":""
+			}
+    	]
+    
+    
+    },
+    {
+     "name":"UploadPayrollFile2", 
+     "pipelinechain": [
+    		{  
+     	   		"name":"Step1",
+	     	    "link":""
+    		},
+        	{  
+     	   		"name":"Step2",
+     	   		"link":""
+    		},
+    		{  
+     	   		"name":"Step2",
+     	   		"link":""
+    		}
+    	]
+    
+    
+    }
+]
+}

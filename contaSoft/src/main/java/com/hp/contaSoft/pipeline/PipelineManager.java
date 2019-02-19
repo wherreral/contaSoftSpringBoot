@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 
 import com.fasterxml.jackson.core.JsonParseException;
@@ -47,7 +48,12 @@ public class PipelineManager {
 		
 		try {
 			
-			example = objectMapper.readValue(new File("C:\\Users\\williams\\Desktop\\pipeline_boot.json"), PipelineManagerHandlerEntity.class);
+//			example = objectMapper.readValue(new File("C:\\Users\\williams\\Desktop\\pipeline_boot.json"), PipelineManagerHandlerEntity.class);
+			//File file = new ClassPathResource("pipeline_boot.json").getFile();
+			//example = objectMapper.readValue( file, PipelineManagerHandlerEntity.class);
+			
+			example = objectMapper.readValue( new ClassPathResource("pipeline_boot.json").getFile(), PipelineManagerHandlerEntity.class);
+			
 			List<PipelineManagerEntity> pipelineManagerList =example.getPipelinemanager();
 			return pipelineManagerList;
 			
