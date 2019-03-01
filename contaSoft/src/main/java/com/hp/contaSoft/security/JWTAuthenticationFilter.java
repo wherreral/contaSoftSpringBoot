@@ -9,6 +9,8 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -19,6 +21,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import com.auth0.jwt.JWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hp.contaSoft.hibernate.entities.AppUser;
+import com.hp.contaSoft.rest.api.payroll.APIPublicRestController;
 
 import static com.auth0.jwt.algorithms.Algorithm.HMAC512;
 import static com.hp.contaSoft.security.SecurityConstants.EXPIRATION_TIME;
@@ -29,6 +32,8 @@ import static com.hp.contaSoft.security.SecurityConstants.TOKEN_PREFIX;
 public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilter{
 
 	private AuthenticationManager authenticationManager;
+	
+	public Logger logger = LoggerFactory.getLogger(JWTAuthenticationFilter.class);
 
     public JWTAuthenticationFilter(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
@@ -38,9 +43,11 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
     public Authentication attemptAuthentication(HttpServletRequest req,
                                                 HttpServletResponse res) throws AuthenticationException {
         try {
+        	System.out.println("pase por aca");
+        	logger.info("info message");
             AppUser creds = new ObjectMapper()
                     .readValue(req.getInputStream(), AppUser.class);
-            System.out.println(creds);
+            System.out.println("creds:"+creds);
             return authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             creds.getUsername(),
@@ -63,6 +70,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
                 .withIssuer(((User) auth.getPrincipal()).getUsername())
                 .withClaim("family", ((User) auth.getPrincipal()).getUsername())
+                .withClaim("name", ((User) auth.getPrincipal()).getUsername())
                 .sign(HMAC512(SECRET.getBytes()));
         System.out.println(((User) auth.getPrincipal()).getUsername());
         System.out.println("TOKEN:"+token);

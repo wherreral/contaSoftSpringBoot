@@ -72,6 +72,18 @@ public class APIRestController {
 	
 	/**
 	 * 
+	 * @param taxp
+	 * @return created client
+	 */
+	@PostMapping("/clients")
+	public Taxpayer createClient(@RequestBody Taxpayer taxp) {
+		return taxpayerRepository.save(taxp);
+	}
+	
+	
+	
+	/**
+	 * 
 	 * @param clientId
 	 * @return return specific client info
 	 */
@@ -138,8 +150,6 @@ public class APIRestController {
 	@PostMapping("/login")
 	public String login(@RequestBody  LoginForm data) {
 		
-		
-		System.out.println("AQUI");
 		
 		logger.warn(data.toString());
 		logger.warn(data.getUsername());

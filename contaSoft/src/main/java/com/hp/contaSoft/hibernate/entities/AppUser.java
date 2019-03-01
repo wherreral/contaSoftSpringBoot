@@ -24,6 +24,10 @@ public class AppUser extends Base {
 	private String username;
 	@Column
 	private String password;
+	@Column
+	private String name;
+	@Column
+	private String phone;
 	
 	@JsonBackReference
 	@ManyToOne

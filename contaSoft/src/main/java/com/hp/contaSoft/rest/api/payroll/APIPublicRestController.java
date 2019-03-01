@@ -1,5 +1,7 @@
 package com.hp.contaSoft.rest.api.payroll;
 
+import java.util.UUID;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,9 +54,14 @@ public class APIPublicRestController {
 		
 		logger.warn("sign-up");
 		
-		//0. Validate user doen't exist
+		//0. Validate user doesn't exist
+		AppUser au = userRepository.findByUsername(user.getUsername());
+		if(au != null) {
+			logger.info("User already exist");
+			return false;
+		}
 		//1. Create family credentials
-		GroupCredentials gc = new GroupCredentials("name","type");
+		GroupCredentials gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
 		groupCredentialsRepository.save(gc);
 		//2. Create user
 		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
@@ -63,6 +70,11 @@ public class APIPublicRestController {
 		
 		//2.1 We actually need to create and return a Family credentials for the new user
 		
+		//3. Save session information
+		// Maybe we need to save the sing-up stamp, user-agent, device
+		// Maybe we can do this as a filter?
+		
+		//4. What is the role of the user?
 		return true;
 	}
 	
