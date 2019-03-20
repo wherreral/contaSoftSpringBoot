@@ -50,7 +50,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.GET, "/importBook2").permitAll()
                 .antMatchers(HttpMethod.POST, "/redirectImportBook").permitAll()
                 .antMatchers(HttpMethod.GET, "/redirectImportBook").permitAll()
-                .antMatchers(HttpMethod.POST, "/api/clients").permitAll()
+                //.antMatchers(HttpMethod.POST, "/api/clients").permitAll()
                 //.antMatchers(HttpMethod.GET, "/api/clients").permitAll()
                 //.antMatchers(HttpMethod.GET, "/api/paybookinstance/15961703-3").permitAll()
                 //.antMatchers("/login").permitAll()
@@ -66,6 +66,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     @Override
     public void configure(AuthenticationManagerBuilder auth) throws Exception {
         auth.userDetailsService(userDetailsService).passwordEncoder(bCryptPasswordEncoder);
+        
     }
 
     

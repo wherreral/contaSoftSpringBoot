@@ -28,6 +28,9 @@ public class Taxpayer extends Base {
 	@Column
 	private String rut;
 	
+	@Column
+	private String familyId; //this field indicate which family created this record
+	
 	@JsonManagedReference
 	@OneToOne(mappedBy = "taxpayer", cascade=CascadeType.ALL)
     private Template template;
@@ -59,6 +62,15 @@ public class Taxpayer extends Base {
 		address.setTaxpayer(this);
 		this.address.add(address);
 	}
+	
+	public Taxpayer(String name, String rut, Address address,String familyId) {
+		this.name = name;
+		this.rut = rut;
+		address.setTaxpayer(this);
+		this.address.add(address);
+		this.familyId = familyId;
+	}
+	
 
 	public Taxpayer(String name, String rut, Address address, Subsidiary subsidiary) {
 		this.name = name;
@@ -133,6 +145,14 @@ public class Taxpayer extends Base {
 	public void setTemplate(Template template) {
 		template.setTaxpayer(this);
 		this.template = template;
+	}
+
+	public String getFamilyId() {
+		return familyId;
+	}
+
+	public void setFamilyId(String familyId) {
+		this.familyId = familyId;
 	}
 
 	

@@ -1,5 +1,6 @@
 package com.hp.contaSoft.rest.api.payroll;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,10 +17,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.hp.contaSoft.hibernate.dao.repositories.GroupCredentialsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.PayBookInstanceRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerPageRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.TemplateDetailsRepository;
+import com.hp.contaSoft.hibernate.dao.repositories.UserRepository;
+import com.hp.contaSoft.hibernate.entities.AppUser;
+import com.hp.contaSoft.hibernate.entities.GroupCredentials;
 import com.hp.contaSoft.hibernate.entities.PayBookInstance;
 import com.hp.contaSoft.hibernate.entities.Taxpayer;
 import com.hp.contaSoft.hibernate.entities.TemplateDefiniton;
@@ -31,18 +36,18 @@ import com.hp.contaSoft.rest.api.payroll.exception.ClientNotFoundException;
 @RequestMapping("/api")
 public class APIRestController {
 
-	@Autowired
-	TaxpayerRepository taxpayerRepository; 
+	@Autowired TaxpayerRepository taxpayerRepository; 
 	
-	@Autowired
-	PayBookInstanceRepository payBookInstanceRepository;
+	@Autowired PayBookInstanceRepository payBookInstanceRepository;
 	
-	@Autowired
-	TemplateDetailsRepository templateDetailsRepository;
+	@Autowired TemplateDetailsRepository templateDetailsRepository;
 	
-	@Autowired
-	TaxpayerPageRepository taxpayerPageRepository;
+	@Autowired TaxpayerPageRepository taxpayerPageRepository;
 
+	@Autowired UserRepository userRepository;
+	
+	@Autowired GroupCredentialsRepository groupCredentialsRepository;
+	
 	public Logger logger = LoggerFactory.getLogger(APIRestController.class);
 	
 	/**
@@ -62,13 +67,33 @@ public class APIRestController {
 	
 	/**
 	 * @return: return all the clients Info
+	 
+	@CrossOrigin(origins = "http://localhost:3000")
+	@GetMapping("/clients")
+	public List<Taxpayer> getClients(Principal principal) {
+		List<Taxpayer> clients = (List<Taxpayer>) taxpayerRepository.findAll();
+		System.out.println("Nombre de usuario:"+principal.getName());
+		return clients;
+	}*/
+	
+	
+	/**
+	 * @return: return all the clients Info by family
 	 */
 	@CrossOrigin(origins = "http://localhost:3000")
 	@GetMapping("/clients")
-	public List<Taxpayer> getClients() {
-		List<Taxpayer> clients = (List<Taxpayer>) taxpayerRepository.findAll();
+	public List<Taxpayer> getClients(Principal principal) {
+		
+		//Find user
+		AppUser appUser = userRepository.findByUsername(principal.getName());
+		//Find user's famillyCredentials
+		GroupCredentials gc = appUser.getGroupCredentials();
+		//GetClients by family
+		List<Taxpayer> clients = (List<Taxpayer>) taxpayerRepository.findAll(gc.getGcId());
+
 		return clients;
 	}
+	
 	
 	/**
 	 * 
@@ -76,7 +101,14 @@ public class APIRestController {
 	 * @return created client
 	 */
 	@PostMapping("/clients")
-	public Taxpayer createClient(@RequestBody Taxpayer taxp) {
+	public Taxpayer createClient(@RequestBody Taxpayer taxp, Principal principal) {
+		
+		//Find user
+		AppUser appUser = userRepository.findByUsername(principal.getName());
+		//Find user's famillyCredentials
+		GroupCredentials gc = appUser.getGroupCredentials();
+		//GetClients by family
+		taxp.setFamilyId(gc.getGcId());
 		return taxpayerRepository.save(taxp);
 	}
 	

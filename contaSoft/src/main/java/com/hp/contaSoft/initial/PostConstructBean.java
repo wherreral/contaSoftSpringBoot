@@ -3,6 +3,7 @@ package com.hp.contaSoft.initial;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import javax.annotation.PostConstruct;
 import javax.persistence.EntityManager;
@@ -17,12 +18,14 @@ import org.springframework.stereotype.Component;
 
 import com.hp.contaSoft.constant.Meses;
 import com.hp.contaSoft.hibernate.dao.repositories.AFPFactorsRepository;
+import com.hp.contaSoft.hibernate.dao.repositories.GroupCredentialsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.HealthFactorsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.IUTRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.TemplateDetailsRepository;
 import com.hp.contaSoft.hibernate.entities.AFPFactors;
 import com.hp.contaSoft.hibernate.entities.Address;
+import com.hp.contaSoft.hibernate.entities.GroupCredentials;
 import com.hp.contaSoft.hibernate.entities.HealthFactors;
 import com.hp.contaSoft.hibernate.entities.Taxpayer;
 import com.hp.contaSoft.hibernate.entities.Template;
@@ -43,6 +46,7 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 	@Autowired HealthFactorsRepository healthFactorsrepository;
 	@Autowired AFPFactorsRepository afpFactorsrepository;
 	@Autowired IUTRepository iUTRepository;
+	@Autowired GroupCredentialsRepository groupCredentialsRepository;
 	
 	@Autowired TaxpayerRepository taxpayerRepository;
 	@Autowired TemplateDetailsRepository templateDetailsRepository;
@@ -101,10 +105,17 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 			Address add2 = new Address("Mi Casa","3");
 			
 			//NewTaxpayer
+			
 			Taxpayer tp = new Taxpayer("Williams SA","15961703-3", address, new Subsidiary("SANTA OLGA"));
 			//Taxpayer tp = new Taxpayer("Williams SA","15961703-3", address);
-			Taxpayer tp2 = new Taxpayer("Marco SA","15961704-3", add);
-			Taxpayer tp3 = new Taxpayer("Copec SA","15961705-3", add2);
+			
+			GroupCredentials gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
+			groupCredentialsRepository.save(gc);
+			Taxpayer tp2 = new Taxpayer("Marco SA","15961704-3", add, gc.getGcId());
+			
+			gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
+			groupCredentialsRepository.save(gc);
+			Taxpayer tp3 = new Taxpayer("Copec SA","15961705-3", add2, gc.getGcId());
 			
 			tp.setTemplate(new Template("Remu","RUT;CENTRO_COSTO;SUELDO_BASE;DT;PREVISION;SALUD;SALUD_PORCENTAJE;BONO;HORAS_EXTRA"));
 			
