@@ -1,7 +1,5 @@
 package com.hp.contaSoft.security;
 
-import static com.hp.contaSoft.security.SecurityConstants.EXPIRATION_TIME;
-
 import static com.hp.contaSoft.security.SecurityConstants.HEADER_STRING;
 import static com.hp.contaSoft.security.SecurityConstants.SECRET;
 import static com.hp.contaSoft.security.SecurityConstants.TOKEN_PREFIX;
@@ -17,17 +15,21 @@ import javax.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
+import com.hp.contaSoft.hibernate.dao.service.UserDetailsServiceImpl;
 
 
 public class JWTAuthorizationFilter extends BasicAuthenticationFilter{
 
-	 public JWTAuthorizationFilter(AuthenticationManager authManager) {
+		private UserDetailsServiceImpl userDetailsServiceImpl;
+		public JWTAuthorizationFilter(AuthenticationManager authManager, UserDetailsServiceImpl userDetailsServiceImpl) {
 	        super(authManager);
-	    }
+	        this.userDetailsServiceImpl = userDetailsServiceImpl;
+		}
 
 	    @Override
 	    protected void doFilterInternal(HttpServletRequest req,
@@ -55,8 +57,11 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter{
 	                    .verify(token.replace(TOKEN_PREFIX, ""))
 	                    .getSubject();
 
-	            if (user != null) {
-	                return new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>());
+	            UserDetails userDetails = this.userDetailsServiceImpl.loadUserByUsername(user);
+	            
+	            if (userDetails != null) {
+	                //return new UsernamePasswordAuthenticationToken(user, null, new ArrayList<>());
+	            	return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
 	            }
 	            return null;
 	        }

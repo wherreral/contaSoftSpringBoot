@@ -1,5 +1,6 @@
 package com.hp.contaSoft.rest.api.payroll;
 
+
 import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
@@ -9,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -17,6 +19,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.hp.contaSoft.custom.CurrentUser;
 import com.hp.contaSoft.hibernate.dao.repositories.GroupCredentialsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.PayBookInstanceRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerPageRepository;
@@ -78,19 +81,14 @@ public class APIRestController {
 	
 	
 	/**
-	 * @return: return all the clients Info by family
+	 * @return: return all the clients by family
 	 */
 	@CrossOrigin(origins = "http://localhost:3000")
 	@GetMapping("/clients")
-	public List<Taxpayer> getClients(Principal principal) {
+	public List<Taxpayer> getClients(Authentication auth) {
 		
-		//Find user
-		AppUser appUser = userRepository.findByUsername(principal.getName());
-		//Find user's famillyCredentials
-		GroupCredentials gc = appUser.getGroupCredentials();
-		//GetClients by family
-		List<Taxpayer> clients = (List<Taxpayer>) taxpayerRepository.findAll(gc.getGcId());
-
+		CurrentUser currentUser = (CurrentUser) auth.getPrincipal();
+		List<Taxpayer> clients = (List<Taxpayer>) taxpayerRepository.findAll(currentUser.getFamilId());
 		return clients;
 	}
 	
@@ -101,14 +99,15 @@ public class APIRestController {
 	 * @return created client
 	 */
 	@PostMapping("/clients")
-	public Taxpayer createClient(@RequestBody Taxpayer taxp, Principal principal) {
+	public Taxpayer createClient(@RequestBody Taxpayer taxp, Authentication auth) {
 		
-		//Find user
-		AppUser appUser = userRepository.findByUsername(principal.getName());
-		//Find user's famillyCredentials
-		GroupCredentials gc = appUser.getGroupCredentials();
-		//GetClients by family
-		taxp.setFamilyId(gc.getGcId());
+		//0. Get logged user 
+		CurrentUser currentUser = (CurrentUser) auth.getPrincipal();
+		
+		//1. Set family Id
+		taxp.setFamilyId(currentUser.getFamilId());
+		
+		//2. Create and return a taxpayer
 		return taxpayerRepository.save(taxp);
 	}
 	
@@ -122,6 +121,8 @@ public class APIRestController {
 	@GetMapping("/clients/{clientId}")
 	public Optional<Taxpayer> getClient(@PathVariable Long clientId) {
 
+		//0. I need to find the clients in my family
+		
 		Optional<Taxpayer> client = taxpayerRepository.findById(clientId);
 		
 		if ( !client.isPresent()) {

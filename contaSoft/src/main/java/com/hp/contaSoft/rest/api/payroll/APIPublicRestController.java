@@ -20,6 +20,7 @@ import com.hp.contaSoft.hibernate.dao.repositories.TemplateDetailsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.UserRepository;
 import com.hp.contaSoft.hibernate.entities.AppUser;
 import com.hp.contaSoft.hibernate.entities.GroupCredentials;
+import com.hp.contaSoft.hibernate.entities.Role;
 
 @RestController
 @RequestMapping("/public/api/")
@@ -63,7 +64,11 @@ public class APIPublicRestController {
 		//1. Create family credentials
 		GroupCredentials gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
 		groupCredentialsRepository.save(gc);
-		//2. Create user
+		
+		//2.Set Role
+		user.setRole(new Role(user,1));
+		
+		//3. Persist User
 		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
 		user.setGroupCredentials(gc);
 		userRepository.save(user);

@@ -66,6 +66,9 @@ public class Base {
     }
 	
     private void setValue() {
+    	//0.I need to save the id of the user
+    	
+    	
     	Authentication auth = SecurityContextHolder.getContext().getAuthentication();
     	
         if(auth != null) {
