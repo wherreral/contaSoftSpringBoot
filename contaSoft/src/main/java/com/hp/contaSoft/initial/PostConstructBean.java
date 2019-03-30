@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import com.hp.contaSoft.constant.Meses;
@@ -23,14 +24,17 @@ import com.hp.contaSoft.hibernate.dao.repositories.HealthFactorsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.IUTRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.TemplateDetailsRepository;
+import com.hp.contaSoft.hibernate.dao.repositories.UserRepository;
 import com.hp.contaSoft.hibernate.entities.AFPFactors;
 import com.hp.contaSoft.hibernate.entities.Address;
+import com.hp.contaSoft.hibernate.entities.AppUser;
 import com.hp.contaSoft.hibernate.entities.GroupCredentials;
 import com.hp.contaSoft.hibernate.entities.HealthFactors;
 import com.hp.contaSoft.hibernate.entities.Taxpayer;
 import com.hp.contaSoft.hibernate.entities.Template;
 import com.hp.contaSoft.hibernate.entities.TemplateDefiniton;
 import com.hp.contaSoft.hibernate.entities.IUT;
+import com.hp.contaSoft.hibernate.entities.Role;
 import com.hp.contaSoft.hibernate.entities.Subsidiary;
 
 @Component
@@ -50,6 +54,9 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 	
 	@Autowired TaxpayerRepository taxpayerRepository;
 	@Autowired TemplateDetailsRepository templateDetailsRepository;
+	
+	@Autowired private BCryptPasswordEncoder bCryptPasswordEncoder;
+	@Autowired UserRepository userRepository;
 	
 	//Map with templates
 	public static final Map<String,Map<String,String>> taxpayerTemplates;
@@ -99,6 +106,23 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 			
 			
 			/**Initial load*/
+			
+			//Create AppUser
+			AppUser user = new AppUser("w","w");
+			
+			//1. Create family credentials
+			GroupCredentials gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
+			groupCredentialsRepository.save(gc);
+			
+			//2.Set Role
+			user.setRole(new Role(user,1));
+			
+			//3. Persist User
+			user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
+			user.setGroupCredentials(gc);
+			userRepository.save(user);
+			
+			
 			//New Address
 			Address address = new Address("Tu Casa","4");
 			Address add = new Address("calle1", "2");
@@ -109,12 +133,12 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 			Taxpayer tp = new Taxpayer("Williams SA","15961703-3", address, new Subsidiary("SANTA OLGA"));
 			//Taxpayer tp = new Taxpayer("Williams SA","15961703-3", address);
 			
-			GroupCredentials gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
+			//GroupCredentials gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
 			groupCredentialsRepository.save(gc);
 			Taxpayer tp2 = new Taxpayer("Marco SA","15961704-3", add, gc.getGcId());
 			
-			gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
-			groupCredentialsRepository.save(gc);
+			//gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
+			//groupCredentialsRepository.save(gc);
 			Taxpayer tp3 = new Taxpayer("Copec SA","15961705-3", add2, gc.getGcId());
 			
 			tp.setTemplate(new Template("Remu","RUT;CENTRO_COSTO;SUELDO_BASE;DT;PREVISION;SALUD;SALUD_PORCENTAJE;BONO;HORAS_EXTRA"));
