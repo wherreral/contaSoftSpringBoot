@@ -84,6 +84,7 @@ $( document ).ready(function() {
 		</tr>
 		</form>
 		</c:forEach>
+
 	</tbody>
 </table>
 

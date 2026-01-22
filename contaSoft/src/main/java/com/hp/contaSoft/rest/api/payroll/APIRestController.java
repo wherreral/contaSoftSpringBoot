@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -69,7 +70,9 @@ public class APIRestController {
 	
 	
 	/**
-	 * @return: return all the clients Info
+	 *
+     *
+     * @return: return all the clients Info
 	 
 	@CrossOrigin(origins = "http://localhost:3000")
 	@GetMapping("/clients")
@@ -84,10 +87,11 @@ public class APIRestController {
 	 * @return: return all the clients by family
 	 */
 	@CrossOrigin(origins = "http://localhost:3000")
-	@GetMapping("/clients")
+	@GetMapping(value = "/clients" , produces = MediaType.APPLICATION_JSON_VALUE)
 	public List<Taxpayer> getClients(Authentication auth) {
 		
 		CurrentUser currentUser = (CurrentUser) auth.getPrincipal();
+        System.out.println("currentUser.getFamilId():"+currentUser.getFamilId());
 		List<Taxpayer> clients = (List<Taxpayer>) taxpayerRepository.findAll(currentUser.getFamilId());
 		return clients;
 	}

@@ -10,7 +10,7 @@ import org.hibernate.jpa.HibernatePersistenceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerRepository;
-import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerRepositoryImpl;
+//import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerRepositoryImpl;
 import com.hp.contaSoft.hibernate.dao.service.TaxpayerService;
 import com.hp.contaSoft.hibernate.entities.Address;
 import com.hp.contaSoft.hibernate.entities.Employee;
@@ -20,17 +20,17 @@ import com.hp.contaSoft.hibernate.entities.Taxpayer;
 
 public class TestDAO {
 	
-	static TaxpayerRepositoryImpl taxpayerRepository = new TaxpayerRepositoryImpl();
+	//static TaxpayerRepositoryImpl taxpayerRepository = new TaxpayerRepositoryImpl();
 	
 	public static void main(String[] args) {
 		try{
 				
 			
-			Address address = new Address("Tu Casa");	
-			Taxpayer tp = new Taxpayer("Williams SA","15961703-3", new Address("Mi Casa"), new Subsidiary("Oficina I"));
-				
-			taxpayerRepository.save(tp);
-			taxpayerRepository.listAll();
+//			Address address = new Address("Tu Casa");
+//			Taxpayer tp = new Taxpayer("Williams SA","15961703-3", new Address("Mi Casa"), new Subsidiary("Oficina I"));
+//
+//			taxpayerRepository.save(tp);
+//			taxpayerRepository.listAll();
 			
 		}catch(Exception e) {
 			throw e;

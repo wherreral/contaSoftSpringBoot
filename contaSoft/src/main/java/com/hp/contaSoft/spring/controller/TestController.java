@@ -12,8 +12,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 //import org.apache.poi.util.SystemOutLogger;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -325,11 +327,19 @@ public class TestController {
 		
 		return "charges";
 	}
-	
-	
+
+    //@RequestMapping("/willy")
+    @GetMapping("/willy")
+    public String home(Model model) {
+        model.addAttribute("message", "Welcome to Spring Boot JSP!");
+
+
+        return taxpayerRepository.findAll().toString();
+        //return "test"; // This will resolve to /WEB-INF/jsp/home-page.jsp
+    }
 	
 	@RequestMapping("/")
-	//@Secured("ROLE_TELLER")
+	@Secured("ROLE_ANONYMOUS")
 	public String doTest(HttpServletRequest request, Model model) {
 		
 		logger.debug("Method '/'");

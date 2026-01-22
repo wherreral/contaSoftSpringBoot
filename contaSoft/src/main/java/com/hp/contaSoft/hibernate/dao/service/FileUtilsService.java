@@ -419,7 +419,7 @@ public class FileUtilsService {
 				//pm.setErrorMessage(getErrorMessage(03));
 				return pmOutput;
 			}
-			
+            pmOutput.setValid(Boolean.TRUE);
 			
 		}catch(Exception e) {
 			System.err.println(e.getMessage());
@@ -465,7 +465,7 @@ public class FileUtilsService {
 			
 			Map<String, String> template = PostConstructBean.taxpayerTemplates.get("15961703-3");
 			String templateHeaders =  template.get("RENTA");
-			
+			System.out.println("templateHeaders:"+templateHeaders);
 			/**
 			 * 2. compare fileHeaders and templateHeaders
 			           two ways to compare: a.- string vs string directly; lenght (equals doesnt work cause or the columns order)			

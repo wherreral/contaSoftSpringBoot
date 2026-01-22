@@ -6,7 +6,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
-import com.hp.contaSoft.interceptors.TestInterceptor;
+//import com.hp.contaSoft.interceptors.TestInterceptor;
 
 
 @Configuration
@@ -22,7 +22,7 @@ public class MyConfig implements WebMvcConfigurer{
 
 	@Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new TestInterceptor());
+        //registry.addInterceptor(new TestInterceptor());
     }
 	
 	/*@Override
