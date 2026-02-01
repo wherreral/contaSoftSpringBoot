@@ -1,0 +1,41 @@
+<?xml version="1.0"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+ xmlns:o="urn:schemas-microsoft-com:office:office"
+ xmlns:x="urn:schemas-microsoft-com:office:excel"
+ xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">
+ <Worksheet ss:Name="Header">
+  <Table>
+   <Row>
+    <Cell><Data ss:Type="String">RUT</Data></Cell>
+    <Cell><Data ss:Type="String">${rut}</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Mes</Data></Cell>
+    <Cell><Data ss:Type="String">${month}</Data></Cell>
+   </Row>
+   <Row>
+    <Cell><Data ss:Type="String">Nombre</Data></Cell>
+    <Cell><Data ss:Type="String">${taxpayerName}</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+ <Worksheet ss:Name="Details">
+  <Table>
+   <Row>
+    <Cell><Data ss:Type="String">RUT</Data></Cell>
+    <Cell><Data ss:Type="String">Sueldo Base</Data></Cell>
+    <Cell><Data ss:Type="String">Gratificacion</Data></Cell>
+    <Cell><Data ss:Type="String">Horas Extra</Data></Cell>
+    <Cell><Data ss:Type="String">Bono Produccion</Data></Cell>
+   </Row>
+   <!-- Template row: duplicate this row for each PayBookDetails entry -->
+   <Row ss:ID="template">
+    <Cell><Data ss:Type="String">${detail.rut}</Data></Cell>
+    <Cell><Data ss:Type="Number">${detail.sueldo_base}</Data></Cell>
+    <Cell><Data ss:Type="Number">${detail.gratificacion}</Data></Cell>
+    <Cell><Data ss:Type="Number">${detail.horasExtra}</Data></Cell>
+    <Cell><Data ss:Type="Number">${detail.bonoProduccion}</Data></Cell>
+   </Row>
+  </Table>
+ </Worksheet>
+</Workbook>

@@ -18,11 +18,11 @@ public interface PayBookDetailsRepository extends CrudRepository<PayBookDetails,
 	
 	List<PayBookDetails> findAllByPayBookInstance_Id(Long id); 
 	
-	@Query("from PayBookDetails p where pay_book_instance =:id")
+	@Query("from PayBookDetails p where p.payBookInstance.id = :id")
 	List<PayBookDetails> findByPayBookInstanceId(@Param("id") Long id);
 	
 	
-	@Query("select p.prevision as prevision, sum(p.valorPrevision) as suma from PayBookDetails p where pay_book_instance =:id group by prevision")
+	@Query("select p.prevision as prevision, sum(p.valorPrevision) as suma from PayBookDetails p where p.payBookInstance.id = :id group by prevision")
 	List<PrevisionProjection> getReportByPrevision(@Param("id") Long id);
 
 	
@@ -33,7 +33,7 @@ public interface PayBookDetailsRepository extends CrudRepository<PayBookDetails,
 	
 	@Query("select p.id as id, p.rut as rut, p.sueldoBase as sueldo_base,"
 			+ "p.gratificacion as gratificacion, p.horasExtra as horasExtra, p.bonoProduccion as bonoProduccion "
-			+ "from PayBookDetails p where pay_book_instance =:id")
+			+ "from PayBookDetails p where p.payBookInstance.id = :id")
 	List<IdProjection> getAllbyId(@Param("id") Long id);
 	
 }

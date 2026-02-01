@@ -50,7 +50,7 @@
 				<text><![CDATA[DATOS DEL TRABAJADOR]]></text>
 			</staticText>
 			<staticText>
-				<reportElement x="10" y="33" width="50" height="30" uuid="09ae982f-78bf-48e9-9ba2-2bf84bfdd416">
+				<reportElement x="7" y="33" width="50" height="30" uuid="09ae982f-78bf-48e9-9ba2-2bf84bfdd416">
 					<property name="com.jaspersoft.studio.spreadsheet.connectionID" value="fac1c078-96a5-4513-b33a-09f8cae8c089"/>
 				</reportElement>
 				<text><![CDATA[rut]]></text>

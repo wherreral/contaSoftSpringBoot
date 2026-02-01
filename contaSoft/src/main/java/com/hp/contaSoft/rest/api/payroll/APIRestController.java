@@ -92,6 +92,7 @@ public class APIRestController {
 		
 		CurrentUser currentUser = (CurrentUser) auth.getPrincipal();
         System.out.println("currentUser.getFamilId():"+currentUser.getFamilId());
+        System.out.println("currentUser.name():"+currentUser.getUsername());
 		List<Taxpayer> clients = (List<Taxpayer>) taxpayerRepository.findAll(currentUser.getFamilId());
 		return clients;
 	}
@@ -135,15 +136,13 @@ public class APIRestController {
 			
 		return client;
 	}
-	
-	
-	@GetMapping("/paybookinstance/{clientId}")
-	public List<PayBookInstance>getPaybookInstanceById(@PathVariable Long clientId) {
-		
-		List<PayBookInstance> payBookInstanceList = (List<PayBookInstance>)payBookInstanceRepository.findAllByTaxpayerId(clientId);
-		
-		return payBookInstanceList;
-	}
+
+    @GetMapping(value = "/paybookinstance/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public List<PayBookInstance> getPaybookInstanceById(@PathVariable Long clientId) {
+        List<PayBookInstance> payBookInstanceList = (List<PayBookInstance>) payBookInstanceRepository.findAllByTaxpayerId(clientId);
+        return payBookInstanceList;
+    }
+
 	
 	
 	/*@GetMapping("/paybookinstance/{clientRut}")

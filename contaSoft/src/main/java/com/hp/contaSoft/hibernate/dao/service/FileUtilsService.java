@@ -63,10 +63,11 @@ public class FileUtilsService {
 	@Autowired
 	_AFamiliarRepository aFamiliarRepository;
 	
-	public PipelineMessage processCSVFile(PipelineMessage pmInput) {
+	public PipelineMessage processCSVFile(PipelineMessage pmInput) 
+	{
 		
-		try {
-			
+		try 
+		{	
 			PipelineMessage pmOutput = pmInput;
 			
 			System.out.println("Method:processCSVFile- i!=0");
@@ -93,6 +94,7 @@ public class FileUtilsService {
 	        List<PayBookDetails> detailsList = cb.parse();
 	        
 			System.out.println("DetailList="+detailsList );
+			System.out.println("DetailList SIZE="+detailsList.size());
 
 	        //Repository for PayBookDetails
 	        //PayBookDetailsRepositoryImpl payBookDetailsRepository = new PayBookDetailsRepositoryImpl();
@@ -101,6 +103,10 @@ public class FileUtilsService {
 	        PayBookInstance pbi = pmInput.getPayBookInstance();
 	    	List<PayBookDetails> pbd = pbi.getPayBookDetails();
 	        
+	    	System.out.println("=== INICIO LOOP DETAILS ===");
+	    	System.out.println("PayBookInstance ID: " + pbi.getId());
+	    	System.out.println("PayBookInstance Version: " + pbi.getVersion());
+	    	System.out.println("Cantidad de detalles a procesar: " + detailsList.size());
 	    	
 	    	//Loop List of PayBookDetails
 	        for(PayBookDetails detail : detailsList)
@@ -161,17 +167,23 @@ public class FileUtilsService {
 	        	System.out.println("detail.getRentaLiquidaImponible()="+detail.getRentaLiquidaImponible());
 	        	Double iut = iUTRepository.getIUT(detail.getRentaLiquidaImponible());
 	        	
-	        	if(iut !=null) {
-	        		System.out.println("iut="+iut);
-		        	detail.calculateValorUIT(iut);
-	        	}else {
-	        		detail.calculateValorUIT(0);
-	        	}
-	        	
-	        	
+				if (iut != null) {
+					System.out.println("iut=" + iut);
+					detail.calculateValorUIT(iut);
+				}
 	        	//Add PayBookDetail to PayBookInstance
 	        	pbd.add(detail);
 	        	
+	        	//Set the bidirectional relationship
+	        	detail.setPayBookInstance(pbi);
+	        	
+	        	System.out.println("Guardando detalle RUT: " + detail.getRut() + " con PayBookInstance ID: " + (pbi != null ? pbi.getId() : "NULL"));
+	        	
+	        	//Persist PayBookDetail
+	        	PayBookDetails savedDetail = payBookDetailsRepository.save(detail);
+	        	System.out.println("Detalle guardado con ID: " + savedDetail.getId());
+	        	
+	        	//Detach PayBookDetail
 	        	//Persist PayBookDetail
 	        	payBookDetailsRepository.save(detail);
 	        	
@@ -220,17 +232,13 @@ public class FileUtilsService {
 	    	
 	        return pmOutput;
 	        
-		}catch(Exception e) {
+		}
+		catch(Exception e) {
 			e.printStackTrace();
 		}
 		
 		return pmInput;
-		
-		
-	
-        
-        
-        
+	    
 
 	}
 
@@ -286,15 +294,30 @@ public class FileUtilsService {
             
             //save PayBookInstance
             tax.getPayBookInstance().add(pbi);
-            taxpayerRepository.save(tax);
+            Taxpayer savedTax = taxpayerRepository.save(tax);
+            
+            // Obtener el PayBookInstance con ID desde el Taxpayer guardado
+            // Buscar el PayBookInstance que acabamos de agregar (el último con la version correcta)
+            PayBookInstance savedPbi = null;
+            for (PayBookInstance instance : savedTax.getPayBookInstance()) {
+                if (instance.getVersion() == pbi.getVersion() && instance.getRut().equals(pbi.getRut())) {
+                    savedPbi = instance;
+                    break;
+                }
+            }
+            
+            if (savedPbi != null) {
+                pbi = savedPbi; // Usar la instancia con ID
+                pmInput.setPayBookInstance(pbi);
+            }
             
             System.out.println("tax="+tax);
+            System.out.println("PayBookInstance guardado con ID: " + pbi.getId());
             
             //list PayBookInstance
             //System.out.println("Lista PayBookInstance");
             //payBookInstanceRepository..listAll();
 
-            pmInput.setPayBookInstance(pbi);
             
             return pmInput;
 		}
@@ -500,9 +523,7 @@ public class FileUtilsService {
 			pmOutput.setValid(false);
 		}
         
-		return pmOutput;
-		
-	}
+		return pmOutput;}
 	
 	
 }

@@ -382,5 +382,30 @@ public class TestController {
 
 		
 	}
-	
+
+
+    // java
+    @GetMapping(value = "/api/paybookinstances", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    public org.springframework.http.ResponseEntity<java.util.List<PayBookInstance>> getAllPayBookInstances() {
+        java.util.List<PayBookInstance> list = (java.util.List<PayBookInstance>) payBookInstanceRepository.findAll();
+        return org.springframework.http.ResponseEntity.ok(list);
+    }
+
+    // java
+    @GetMapping(value = "/api/v1/clients", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    public org.springframework.http.ResponseEntity<java.util.List<Taxpayer>> getAllClients() {
+        java.util.List<Taxpayer> list = (java.util.List<Taxpayer>) taxpayerRepository.findAll();
+        return org.springframework.http.ResponseEntity.ok(list);
+    }
+    
+    @GetMapping(value = "/api/paybookdetails/all", produces = org.springframework.http.MediaType.APPLICATION_JSON_VALUE)
+    public org.springframework.http.ResponseEntity<?> getAllPayBookDetails() {
+        java.util.List<com.hp.contaSoft.excel.entities.PayBookDetails> list = (java.util.List<com.hp.contaSoft.excel.entities.PayBookDetails>) payBookDetailsRepository.findAll();
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("total", list.size());
+        response.put("data", list);
+        return org.springframework.http.ResponseEntity.ok(response);
+    }
+
 }
+

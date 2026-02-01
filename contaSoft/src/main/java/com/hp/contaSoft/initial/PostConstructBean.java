@@ -12,6 +12,7 @@ import javax.persistence.Persistence;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.event.ContextRefreshedEvent;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -57,6 +58,9 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 	
 	@Autowired private BCryptPasswordEncoder bCryptPasswordEncoder;
 	@Autowired UserRepository userRepository;
+	
+	@Autowired(required = false)
+	private AutoTestRunner autoTestRunner;
 	
 	//Map with templates
 	public static final Map<String,Map<String,String>> taxpayerTemplates;
@@ -147,11 +151,22 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 			taxpayerRepository.save(tp2);
 			taxpayerRepository.save(tp3);
 			
+			// Ejecutar AutoTest si está habilitado
+			if (autoTestRunner != null) {
+				System.out.println("\n>>> Ejecutando AutoTest después de PostConstructBean...\n");
+				try {
+					autoTestRunner.runTest();
+				} catch (Exception e) {
+					System.out.println("Error ejecutando AutoTest: " + e.getMessage());
+					e.printStackTrace();
+				}
+			}
 			
 		}catch(Exception e) {
 			e.printStackTrace();
 		}
 		
+	
 		
 		
 		//emf = Persistence.createEntityManagerFactory("A");

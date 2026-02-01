@@ -29,8 +29,7 @@ public class PayBookInstance extends Base{
 	@JoinColumn(name="taxpayer_id")
 	private Taxpayer taxpayer;
 	
-	@OneToMany(cascade=CascadeType.ALL)
-	@JoinColumn(name="payBookInstance")
+	@OneToMany(mappedBy="payBookInstance", cascade=CascadeType.ALL)
 	private List<com.hp.contaSoft.excel.entities.PayBookDetails> payBookDetails = new ArrayList<>();
 	
 	

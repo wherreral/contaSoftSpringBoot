@@ -15,7 +15,7 @@ import com.hp.contaSoft.configuration.FileStorageProperties;
 })
 //@EntityScan(basePackages = {"com.hp.pipeline",
 	//	"com.hp.hibernate.entities",
-		//"com.hp.Controller", 
+		//"com.hp.Controller", 	
 		//"com.hp.excel.entities"
 		//})
 //@EnableJpaRepositories("com.hp.hibernate.dao.repositories,com.hp.hibernate.entities,com.hp.spring.controller")
