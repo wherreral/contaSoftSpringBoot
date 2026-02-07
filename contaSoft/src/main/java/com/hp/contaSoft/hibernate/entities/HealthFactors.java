@@ -19,6 +19,9 @@ public class HealthFactors extends Base{
 	private String name;
 	
 	@Column
+	private String nickname;
+	
+	@Column
 	private double pecentaje;
 
 	public HealthFactors(String name, double pecentaje) {

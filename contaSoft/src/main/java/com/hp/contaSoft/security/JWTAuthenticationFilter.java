@@ -90,6 +90,13 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
         System.out.println("TOKEN:"+token);
         res.addHeader(HEADER_STRING, TOKEN_PREFIX + token);
         res.addHeader("Access-Control-Expose-Headers", "Authorization");
+        
+        // Set JWT as cookie so browser page navigations carry the token
+        javax.servlet.http.Cookie jwtCookie = new javax.servlet.http.Cookie("JWT_TOKEN", token);
+        jwtCookie.setHttpOnly(true);
+        jwtCookie.setPath("/");
+        jwtCookie.setMaxAge((int)(EXPIRATION_TIME / 1000));
+        res.addCookie(jwtCookie);
     }
 	
 }

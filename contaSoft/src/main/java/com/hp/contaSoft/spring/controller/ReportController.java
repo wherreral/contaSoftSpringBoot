@@ -111,7 +111,8 @@ public class ReportController {
                 // Calcular total remuneración no imponible
                 totalRemuneracionNoImponible = firstDetail.getColacion() + 
                                                firstDetail.getMovilizacion() + 
-                                               firstDetail.getTotalAsignacionFamiliar();
+                                               firstDetail.getTotalAsignacionFamiliar() +
+                                               firstDetail.getDescuentoHerramientas();
                 
                 // Calcular total descuentos previsionales
                 totalDescuentosPrevisionales = firstDetail.getValorPrevision() + 
@@ -210,13 +211,13 @@ public class ReportController {
             Map<String, Object> m = new HashMap<>(40); // tamaño ampliado para todos los campos
             
             // Datos básicos
-            m.put("id", d.getId());
-            m.put("rut", d.getRut());
-            m.put("centroCosto", d.getCentroCosto());
+            m.put("id", d.getId() != null ? d.getId() : 0L);
+            m.put("rut", d.getRut() != null ? d.getRut() : "");
+            m.put("centroCosto", d.getCentroCosto() != null ? d.getCentroCosto() : "");
             m.put("diasTrabajados", d.getDiasTrabajados());
-            m.put("prevision", d.getPrevision());
-            m.put("salud", d.getSalud());
-            m.put("saludPorcentaje", d.getSaludPorcentaje());
+            m.put("prevision", d.getPrevision() != null ? d.getPrevision() : "");
+            m.put("salud", d.getSalud() != null ? d.getSalud() : "");
+            m.put("saludPorcentaje", d.getSaludPorcentaje() / 100);
             
             // Remuneración Imponible
             m.put("sueldoBase", d.getSueldoBase());
@@ -237,7 +238,7 @@ public class ReportController {
             m.put("totalHaber", d.getTotalHaber());
             
             // Descuentos Previsionales
-            m.put("porcentajePrevision", d.getPorcentajePrevision());
+            m.put("porcentajePrevision", d.getPorcentajePrevision() / 100);
             m.put("valorPrevision", d.getValorPrevision());
             m.put("valorSalud", d.getValorSalud());
             m.put("valorAFC", d.getValorAFC());
@@ -249,7 +250,7 @@ public class ReportController {
             m.put("apv", d.getApv());
             m.put("prestamos", d.getPrestamos());
             m.put("seguroOncologico", d.getSeguroOncologico());
-            m.put("seguroOAccidentes", d.getSeguroOAccidentes());
+            m.put("seguroOAccidentes", d.getSeguroOAccidentes() != null ? d.getSeguroOAccidentes() : "");
             m.put("valorIUT", d.getValorIUT());
             m.put("anticipo", d.getAnticipo());
             

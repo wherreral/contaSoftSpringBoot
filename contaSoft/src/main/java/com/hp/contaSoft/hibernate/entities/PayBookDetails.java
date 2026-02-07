@@ -120,7 +120,7 @@ public class PayBookDetails extends Base{
 	private String SALUD;
 	
 	@Column
-	private String AFC;
+	private double AFC;
 	
 	@Column
 	private double APV;

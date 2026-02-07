@@ -15,12 +15,17 @@ import com.hp.contaSoft.hibernate.entities.Taxpayer;
 @Repository
 public interface TaxpayerRepository extends CrudRepository<Taxpayer, Long>{
 
-	Taxpayer findByRut(String rut);
+	Taxpayer findFirstByRut(String rut);
+	
+	@Query("select p from Taxpayer p where p.rut = :rut AND p.familyId = :familyId")
+	Taxpayer findByRutAndFamilyId(@Param("rut") String rut, @Param("familyId") String familyId);
 	
 	public List<Taxpayer> findAll(Pageable pageable);
 	
 	@Query("select p from Taxpayer p where p.familyId =:familyId ORDER BY id desc")
 	public List<Taxpayer> findAll(@Param("familyId") String familyId);
+	
+	public List<Taxpayer> findByFamilyId(String familyId);
 	
 	
 }

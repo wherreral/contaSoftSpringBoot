@@ -75,7 +75,7 @@ public class Paybook {
 	
 	//PORCENTAJE
 	@CsvBindByName
-	private String AFC;
+	private double AFC;
 	
 	@CsvBindByName
 	private double APV;
@@ -212,11 +212,11 @@ public class Paybook {
 		SALUD = sALUD;
 	}
 
-	public String getAFC() {
+	public double getAFC() {
 		return AFC;
 	}
 
-	public void setAFC(String aFC) {
+	public void setAFC(double aFC) {
 		AFC = aFC;
 	}
 

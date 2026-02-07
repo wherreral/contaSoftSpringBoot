@@ -6,8 +6,40 @@
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
 <title>Insert title here</title>
+<style>
+	.error-message {
+		background-color: #ffcccc;
+		border: 1px solid #ff0000;
+		color: #cc0000;
+		padding: 10px;
+		margin: 10px 0;
+		border-radius: 5px;
+	}
+	.success-message {
+		background-color: #ccffcc;
+		border: 1px solid #00ff00;
+		color: #006600;
+		padding: 10px;
+		margin: 10px 0;
+		border-radius: 5px;
+	}
+</style>
 </head>
 <body>
+
+<!-- Mostrar mensaje de error si existe -->
+<c:if test="${not empty errorMessage}">
+	<div class="error-message">
+		<strong>Error en la importación:</strong> ${errorMessage}
+	</div>
+</c:if>
+
+<!-- Mostrar mensaje de éxito si existe -->
+<c:if test="${not empty successMessage}">
+	<div class="success-message">
+		<strong>Éxito:</strong> ${successMessage}
+	</div>
+</c:if>
 
 Clientes: <br /><br />
 

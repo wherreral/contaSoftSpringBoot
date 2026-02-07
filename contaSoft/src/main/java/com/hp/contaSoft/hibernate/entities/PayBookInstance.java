@@ -14,6 +14,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.Version;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import lombok.Data;
 import lombok.Getter;
@@ -29,6 +30,7 @@ public class PayBookInstance extends Base{
 	@JoinColumn(name="taxpayer_id")
 	private Taxpayer taxpayer;
 	
+	@JsonManagedReference
 	@OneToMany(mappedBy="payBookInstance", cascade=CascadeType.ALL)
 	private List<com.hp.contaSoft.excel.entities.PayBookDetails> payBookDetails = new ArrayList<>();
 	
@@ -51,6 +53,9 @@ public class PayBookInstance extends Base{
 	
 	@Column
 	private String status;
+	
+	@Column
+	private String familyId;
 	
 	public PayBookInstance() {
 		

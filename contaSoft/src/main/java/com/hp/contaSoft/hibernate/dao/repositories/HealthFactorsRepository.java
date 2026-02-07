@@ -9,4 +9,6 @@ import com.hp.contaSoft.hibernate.entities.HealthFactors;
 @Repository
 public interface HealthFactorsRepository extends CrudRepository<HealthFactors, Long>{
 
+	HealthFactors findByName(String name);
+
 }

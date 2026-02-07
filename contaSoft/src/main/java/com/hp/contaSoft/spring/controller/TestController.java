@@ -1,5 +1,6 @@
 package com.hp.contaSoft.spring.controller;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -13,6 +14,7 @@ import org.slf4j.LoggerFactory;
 //import org.apache.poi.util.SystemOutLogger;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.annotation.Secured;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.hp.contaSoft.custom.CurrentUser;
 import com.hp.contaSoft.excel.entities.PayBookDetails;
 import com.hp.contaSoft.hibernate.dao.projection.PrevisionProjection;
 import com.hp.contaSoft.hibernate.dao.repositories.AFPFactorsRepository;
@@ -67,6 +70,8 @@ public class TestController {
 	private PayBookInstanceRepository payBookInstanceRepository;
 	@Autowired
 	private PayBookDetailsRepository payBookDetailsRepository;
+	@Autowired
+	private com.hp.contaSoft.hibernate.dao.service.SystemParameterService systemParameterService;
 	
 	/*
 	@RequestMapping("/charges")
@@ -114,8 +119,10 @@ public class TestController {
                  
                 System.out.println("Procesing File: " + aFile.getOriginalFilename());
                 
-                InputStream is = aFile.getInputStream();
-                InputStream is2 = aFile.getInputStream();
+                // Leer el archivo una vez y crear dos streams independientes
+                byte[] fileBytes = aFile.getBytes();
+                InputStream is = new ByteArrayInputStream(fileBytes);
+                InputStream is2 = new ByteArrayInputStream(fileBytes);
                 
                 /***
                  * Start Validation Pipeline
@@ -283,6 +290,120 @@ public class TestController {
     }
 	
 	
+	/**
+	 * Nuevo endpoint para importar archivo CSV via AJAX
+	 * Retorna JSON con resultado de la operación
+	 * Si es exitoso, retorna URL para redirigir a la página de PayBookInstances del cliente
+	 * Si hay error, retorna mensaje de error para mostrar en popup
+	 */
+	@org.springframework.transaction.annotation.Transactional
+	@RequestMapping(value = "/importBookAjax", produces = "application/json")
+	@org.springframework.web.bind.annotation.ResponseBody
+    public java.util.Map<String, Object> handleFileUploadAjax(
+    		HttpServletRequest request,
+            @RequestParam MultipartFile[] fileUpload,
+            Model model,
+            Authentication authentication
+    		) {
+		
+		java.util.Map<String, Object> response = new java.util.HashMap<>();
+         
+		try {
+		
+        System.out.println("description: " + request.getParameter("description"));
+        
+        // Obtener familyId del usuario autenticado
+        String familyId = null;
+        if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof CurrentUser) {
+        	CurrentUser currentUser = (CurrentUser) authentication.getPrincipal();
+        	familyId = currentUser.getFamilId();
+        	System.out.println("FamilyId obtenido: " + familyId);
+        } else {
+        	System.out.println("No se pudo obtener familyId del usuario autenticado");
+        	response.put("success", false);
+        	response.put("errorMessage", "Usuario no autenticado");
+        	return response;
+        }
+        
+        if (fileUpload != null && fileUpload.length > 0) {
+            for (MultipartFile aFile : fileUpload){
+                 
+                System.out.println("Procesing File: " + aFile.getOriginalFilename());
+                
+                // Leer el archivo una vez y crear dos streams independientes
+                byte[] fileBytes = aFile.getBytes();
+                InputStream is = new ByteArrayInputStream(fileBytes);
+                InputStream is2 = new ByteArrayInputStream(fileBytes);
+                
+                /***
+                 * Start Validation Pipeline
+                 * 0.Validate file name
+                 * 1.Validate Headers
+                 * 2.Create PayBookInstance
+                 * 3.Process csv file
+                 * 4.Create PayBookDetail
+                 * 5.Calculate Fields NEED TO ADD
+                 */
+                
+                System.out.println("START PIPELINE");
+                
+                // Crear nueva instancia de PipelineMessage para evitar problemas con singleton
+                PipelineMessage newPipelineMessage = new PipelineMessage();
+                newPipelineMessage.setFileNameInput(aFile.getOriginalFilename());
+                newPipelineMessage.setIsInput(is);
+                newPipelineMessage.setIsInput2(is2);
+                newPipelineMessage.setFamilyId(familyId);
+                
+                //set chain name to execute
+                pm.setChainName("UploadPayrollFile");
+                
+                PipelineMessage pipelineResult = pm.execute(newPipelineMessage);
+                
+                if(pipelineResult.isValid())
+                {
+                	//return succesfull
+                	System.out.println("PIPELINE final VALIDO");
+                	
+                	// Obtener el PayBookInstance procesado y su cliente asociado
+                	PayBookInstance pbiProcessed = pipelineResult.getPayBookInstance();
+                	if(pbiProcessed != null && pbiProcessed.getTaxpayer() != null) {
+                		Long clientId = pbiProcessed.getTaxpayer().getId();
+                		System.out.println("Redirigiendo a charges con clientId: " + clientId);
+                		// Retornar éxito con URL de redirección
+                		response.put("success", true);
+                		response.put("redirectUrl", "/charges?id=" + clientId);
+                		response.put("message", "Archivo importado correctamente");
+                		return response;
+                	}
+                }
+                else {
+                	//return error
+                	System.out.println("PIPELINE final INVALIDO");
+                	response.put("success", false);
+                	response.put("errorMessage", pipelineResult.getErrorMessageOutput());
+                	return response;
+                }
+            }
+        }
+        
+        // Si no hay archivos
+        response.put("success", false);
+        response.put("errorMessage", "No se seleccionó ningún archivo");
+        return response;
+        
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+			System.out.println(e.getLocalizedMessage());
+			System.out.println("Entre ACA");
+			
+			// Retornar error
+			response.put("success", false);
+			response.put("errorMessage", "Error al procesar el archivo: " + e.getMessage());
+			return response;
+		}
+    }
+	
 	
 	@RequestMapping("/importBook")
 	public String doImportBook(HttpServletRequest request, Model model) {
@@ -316,16 +437,119 @@ public class TestController {
 	
 
 	@RequestMapping(value="/charges", method = { RequestMethod.POST, RequestMethod.GET })
-	public String handleCharge(@RequestParam Long id, HttpServletRequest request, Model model) {
+	public String handleCharge(@RequestParam Long id, HttpServletRequest request, Model model, Authentication authentication) {
 
 		System.out.println("charges post");
 		System.out.println("id="+id);
 		
-		List<PayBookInstance> listPBI = (List<PayBookInstance>) payBookInstanceRepository.findAllByTaxpayerIdOrderByVersionDesc(id);
+		// Obtener familyId del usuario autenticado
+		String familyId = null;
+		if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof CurrentUser) {
+			CurrentUser currentUser = (CurrentUser) authentication.getPrincipal();
+			familyId = currentUser.getFamilId();
+			System.out.println("FamilyId obtenido: " + familyId);
+		}
+		
+		List<PayBookInstance> listPBI;
+		if (familyId != null) {
+			listPBI = (List<PayBookInstance>) payBookInstanceRepository.findAllByFamilyIdAndTaxpayerId(familyId, id);
+		} else {
+			// Fallback, pero debería requerir autenticación
+			listPBI = (List<PayBookInstance>) payBookInstanceRepository.findAllByTaxpayerIdOrderByVersionDesc(id);
+		}
 		System.out.println("Cantidad de PBI:"+listPBI.size());
 		model.addAttribute("pbi", listPBI);
 		
 		return "charges";
+	}
+	
+	/**
+	 * Endpoint AJAX para obtener los PayBookDetails de un PayBookInstance
+	 * Retorna JSON con la lista de detalles
+	 */
+	@RequestMapping(value="/api/paybookdetails", method = RequestMethod.GET, produces = "application/json")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public List<PayBookDetails> getPayBookDetails(@RequestParam Long pbiId, Authentication authentication) {
+		System.out.println("=== Obteniendo PayBookDetails para PBI id=" + pbiId + " ===");
+		
+		// Obtener familyId del usuario autenticado
+		String familyId = null;
+		if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof CurrentUser) {
+			CurrentUser currentUser = (CurrentUser) authentication.getPrincipal();
+			familyId = currentUser.getFamilId();
+			System.out.println("FamilyId obtenido: " + familyId);
+		}
+		
+		// Verificar si el PayBookInstance existe y pertenece al usuario
+		PayBookInstance pbi = null;
+		if (familyId != null) {
+			pbi = payBookInstanceRepository.findByIdAndFamilyId(pbiId, familyId);
+		} else {
+			java.util.Optional<PayBookInstance> pbiOpt = payBookInstanceRepository.findById(pbiId);
+			if (pbiOpt.isPresent()) {
+				pbi = pbiOpt.get();
+			}
+		}
+		
+		if (pbi != null) {
+			System.out.println("PayBookInstance encontrado: id=" + pbi.getId() + ", rut=" + pbi.getRut() + ", month=" + pbi.getMonth());
+			System.out.println("PayBookDetails en memoria: " + (pbi.getPayBookDetails() != null ? pbi.getPayBookDetails().size() : "NULL"));
+		} else {
+			System.out.println("PayBookInstance NO encontrado con id=" + pbiId + " para familyId=" + familyId);
+			return new java.util.ArrayList<>(); // Retornar lista vacía si no se encuentra
+		}
+		
+		// Obtener los detalles del PayBookInstance
+		List<PayBookDetails> listPBD = payBookDetailsRepository.findAllByPayBookInstanceIdAndFamilyId(pbi.getId(), familyId);
+		System.out.println("PayBookDetails encontrados: " + listPBD.size());
+
+		// Recalcular valores necesarios para la vista por si provienen de imports antiguos
+		for (PayBookDetails d : listPBD) {
+			try {
+				// Si afc==0 usamos el parámetro global AFC
+				if (d.getAfc() == 0.0) {
+					try {
+						java.util.List<com.hp.contaSoft.hibernate.entities.SystemParameter> params = systemParameterService.findByNameIgnoreCase("AFC");
+						if (params != null && !params.isEmpty()) {
+							String v = params.get(0).getValue();
+							if (v != null && !v.isEmpty()) {
+								v = v.replace(',', '.').trim();
+								d.setAfc(Double.parseDouble(v));
+							}
+						}
+					} catch (Exception ex) {
+						System.err.println("Error leyendo parametro AFC en controller: " + ex.getMessage());
+					}
+				}
+				// Asegurar que totalImponible está calculado
+				if (d.getTotalImponible() == 0) {
+					d.calculateTotalHoraExtra();
+					d.calculateSueldoMensual();
+					d.calculateGratificacion();
+					d.calculateTotalImponible();
+				}
+				// Recalcular AFC y valores de previsión y salud
+				d.calculateAfc();
+				d.calculatePrevision();
+				d.calculateSalud();
+			} catch (Exception ex) {
+				System.err.println("Error recalculando valores para detalle id=" + d.getId() + " : " + ex.getMessage());
+			}
+		}
+		
+		// Listar todos los PayBookDetails para debug
+		Iterable<PayBookDetails> allDetails = payBookDetailsRepository.findAll();
+		int count = 0;
+		for (PayBookDetails d : allDetails) {
+			count++;
+			if (count <= 5) {
+				System.out.println("Detail id=" + d.getId() + ", rut=" + d.getRut() + 
+					", pbiId=" + (d.getPayBookInstance() != null ? d.getPayBookInstance().getId() : "NULL"));
+			}
+		}
+		System.out.println("Total PayBookDetails en BD: " + count);
+		
+		return listPBD;
 	}
 
     //@RequestMapping("/willy")
@@ -338,20 +562,30 @@ public class TestController {
         //return "test"; // This will resolve to /WEB-INF/jsp/home-page.jsp
     }
 	
-	@RequestMapping("/")
-	@Secured("ROLE_ANONYMOUS")
-	public String doTest(HttpServletRequest request, Model model) {
+	@RequestMapping({"/", "/home"})
+	public String doTest(HttpServletRequest request, Model model, Authentication authentication) {
 		
 		logger.debug("Method '/'");
-		logger.trace("TRACE");
 		logger.info("INFO");
-		logger.warn("WARN");
-		logger.error("error");
+
+		// Si no hay autenticación, redirigir al login
+		if (authentication == null || !authentication.isAuthenticated() 
+				|| !(authentication.getPrincipal() instanceof CurrentUser)) {
+			return "redirect:/login";
+		}
 		
 		try {
 			
-			//List Taxpayer
-			List<Taxpayer> taxpayers = (List<Taxpayer>) taxpayerRepository.findAll();
+			//List Taxpayer - Filter by familyId
+			List<Taxpayer> taxpayers = new ArrayList<>();
+			CurrentUser currentUser = (CurrentUser) authentication.getPrincipal();
+			String familyId = currentUser.getFamilId();
+			if (familyId != null && !familyId.isEmpty()) {
+				taxpayers = taxpayerRepository.findByFamilyId(familyId);
+				logger.info("Loaded {} taxpayers for familyId: {}", taxpayers.size(), familyId);
+			} else {
+				logger.warn("doTest - FamilyId is null or empty for authenticated user");
+			}
 			System.out.println("Cantidad de clientes:"+taxpayers.size());
 			
 			//List Address

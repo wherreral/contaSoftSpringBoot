@@ -9,7 +9,7 @@ import com.hp.contaSoft.hibernate.entities.AppUser;
 @Repository
 public interface UserRepository extends CrudRepository<AppUser, Long>{
 
-	AppUser findByUsername(String username);
+	AppUser findFirstByUsername(String username);
 
 	
 	

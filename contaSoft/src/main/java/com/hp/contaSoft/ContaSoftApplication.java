@@ -13,6 +13,11 @@ import com.hp.contaSoft.configuration.FileStorageProperties;
 @EnableConfigurationProperties({
     FileStorageProperties.class
 })
+@ComponentScan(basePackages = {
+    "com.hp.contaSoft.hibernate.dao.service",
+    "com.hp.contaSoft.rest.api.ui",
+    "com.hp.contaSoft"
+})
 //@EntityScan(basePackages = {"com.hp.pipeline",
 	//	"com.hp.hibernate.entities",
 		//"com.hp.Controller", 	

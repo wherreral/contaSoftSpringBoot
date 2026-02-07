@@ -36,4 +36,10 @@ public interface PayBookDetailsRepository extends CrudRepository<PayBookDetails,
 			+ "from PayBookDetails p where p.payBookInstance.id = :id")
 	List<IdProjection> getAllbyId(@Param("id") Long id);
 	
+	@Query("SELECT p FROM PayBookDetails p WHERE p.familyId = :familyId")
+	List<PayBookDetails> findAllByFamilyId(@Param("familyId") String familyId);
+	
+	@Query("SELECT p FROM PayBookDetails p WHERE p.payBookInstance.id = :payBookInstanceId AND p.familyId = :familyId")
+	List<PayBookDetails> findAllByPayBookInstanceIdAndFamilyId(@Param("payBookInstanceId") Long payBookInstanceId, @Param("familyId") String familyId);
+	
 }

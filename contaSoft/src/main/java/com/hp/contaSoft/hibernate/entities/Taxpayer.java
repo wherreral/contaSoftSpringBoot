@@ -9,6 +9,7 @@ import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 
 import lombok.Data;
@@ -32,8 +33,8 @@ public class Taxpayer extends Base {
 	private String familyId; //this field indicate which family created this record
 	
 	@JsonManagedReference
-	@OneToOne(mappedBy = "taxpayer", cascade=CascadeType.ALL)
-    private Template template;
+	@OneToMany(mappedBy = "taxpayer", cascade=CascadeType.ALL)
+    private List<Template> templates = new ArrayList<>();
 	
 	@JsonManagedReference
 	@OneToMany(mappedBy="taxpayer", cascade=CascadeType.ALL)
@@ -43,7 +44,7 @@ public class Taxpayer extends Base {
 	@OneToMany(mappedBy="taxpayer", cascade=CascadeType.ALL)
 	private List<Subsidiary> subsidiary = new ArrayList<>();
 	
-	@JsonManagedReference
+	@JsonIgnore
 	@OneToMany(mappedBy="taxpayer", cascade=CascadeType.ALL)
 	private List<PayBookInstance> payBookInstance = new ArrayList<>();
 	
@@ -138,13 +139,12 @@ public class Taxpayer extends Base {
 	}
 
 	
-	public Template getTemplate() {
-		return template;
+	public List<Template> getTemplates() {
+		return templates;
 	}
 
-	public void setTemplate(Template template) {
-		template.setTaxpayer(this);
-		this.template = template;
+	public void setTemplates(List<Template> templates) {
+		this.templates = templates;
 	}
 
 	public String getFamilyId() {

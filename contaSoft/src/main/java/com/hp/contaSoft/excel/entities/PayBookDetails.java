@@ -12,6 +12,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.Table;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.hp.contaSoft.hibernate.dao.service.FileUtilsService;
 import com.hp.contaSoft.hibernate.entities.Base;
 import com.hp.contaSoft.hibernate.entities.PayBookInstance;
@@ -47,6 +48,9 @@ public class PayBookDetails {
 	@Id
 	@GeneratedValue(strategy=GenerationType.IDENTITY)
 	private Long id;
+	
+	@Column
+	private String familyId;
 	
 	/**
 	 * Required Fields
@@ -98,17 +102,25 @@ public class PayBookDetails {
 	private int asignacionFamiliar;
 	
 	@Column
+	@CsvBindByName(column = "MOVILIZACION")
 	private double movilizacion;
 	
 	@Column
+	@CsvBindByName(column = "COLACION")
 	private double colacion;
 	
 	@Column
-	private int descuentoHerramientas;
+	@CsvBindByName(column = "DESGASTE")
+	private double descuentoHerramientas;
 	
 	@Column
-	private int afc;
-	
+	@CsvBindByName(column = "AFC")
+	private double afc;
+
+	@Column
+	@CsvBindByName(column = "ALCANCE_LIQUIDO")
+	private Double alcanceLiquido;
+
 	@Column
 	private int apv;
 	
@@ -175,6 +187,7 @@ public class PayBookDetails {
 	@Column
 	private double totalHoraExtra;
 	
+	@JsonBackReference
 	@ManyToOne(cascade={CascadeType.ALL})
 	@JoinColumn(name="payBookInstance_id")
 	private PayBookInstance payBookInstance;
@@ -194,7 +207,8 @@ public class PayBookDetails {
 	}
 	
 	public void calculateGratificacion() {
-		this.gratificacion = (( this.sueldoBase * 25) / 100 ) / (30 * this.diasTrabajados); 
+		// Gratificación = (25% del sueldo base / 12 meses) * proporción de días trabajados
+		this.gratificacion = ((this.sueldoBase * 0.25) / 12) * (this.diasTrabajados / 30.0); 
 	}
 
 	public void calculateValorHora() {
@@ -203,7 +217,7 @@ public class PayBookDetails {
 	
 	public void calculateTotalImponible() {
 		this.totalImponible = this.sueldoMensual +  this.gratificacion + 
-				this.bonoProduccion + this.aguinaldo + this.horasExtra; 
+				this.bonoProduccion + this.aguinaldo + this.totalHoraExtra; 
 	}
 	
 	public void calculateTotalHaber() {
@@ -224,7 +238,22 @@ public class PayBookDetails {
 	}
 	
 	public void calculateAfc() {
-		this.valorAFC = (this.afc * 1.8) / 100; 
+		// AFC should be applied over the imponible (totalImponible)
+		// If `afc` is expressed as a percentage (e.g. 1.8), this computes:
+		// valorAFC = afc% * totalImponible = (afc * totalImponible) / 100
+		this.valorAFC = (this.afc * this.totalImponible) / 100.0;
+	}
+
+	/**
+	 * Calculated transient value (not persisted):
+	 * TOTAL DCTO. PREVISIONAL = AFP (valorPrevision) + AFC (valorAFC) + Salud (valorSalud)
+	 * Jackson will serialize this getter as `totalDctoPrevisional` in the JSON response.
+	 */
+	public double getTotalDctoPrevisional() {
+		double vp = this.getValorPrevision();
+		double va = this.getValorAFC();
+		double vs = this.getValorSalud();
+		return vp + va + vs;
 	}
 	
 	public void calculateRentaLiquidaImponible() {
@@ -245,9 +274,188 @@ public class PayBookDetails {
 	}
 	
 	public void calculateTotalHoraExtra() {
-		this.totalHoraExtra = (this.valorHora * this.horasExtra); 
+		this.totalHoraExtra = (this.valorHora * this.horasExtra);
 	}
-	
+
+	/**
+	 * Calcula el BONO_PRODUCCION usando el método algebraico directo.
+	 *
+	 * Fórmula derivada:
+	 * BONO = [AL_TARGET - NO_IMP - BASE_IMP_SIN_BONO * (1 - TOTAL_DESC_%)] / (1 - TOTAL_DESC_%)
+	 *
+	 * donde:
+	 * - AL_TARGET = alcanceLiquido del CSV (valor conocido)
+	 * - NO_IMP = movilizacion + colacion + descuentoHerramientas
+	 * - BASE_IMP_SIN_BONO = sueldoMensual + gratificacion + aguinaldo + totalHoraExtra
+	 * - TOTAL_DESC_% = (porcentajePrevision + saludPorcentaje + afc) / 100
+	 *
+	 * @param alcanceLiquidoTarget El alcance líquido objetivo del CSV
+	 * @return El bono calculado (>= 0)
+	 */
+	public double calculateBonoByAlgebraicMethod(double alcanceLiquidoTarget) {
+		// Componentes NO imponibles
+		double noImponible = this.movilizacion + this.colacion + this.descuentoHerramientas;
+
+		// Base imponible SIN bono (ya calculados antes)
+		double baseImponibleSinBono = this.sueldoMensual + this.gratificacion +
+									   this.aguinaldo + this.totalHoraExtra;
+
+		// Porcentaje TOTAL de descuentos previsionales (AFP + Salud + AFC)
+		double totalDescuentoPorcentaje = (this.porcentajePrevision + this.saludPorcentaje + this.afc) / 100.0;
+
+		// Fórmula algebraica directa
+		// ALCANCE_LIQUIDO = TOTAL_HABER - DCTO_PREVISIONALES
+		// TOTAL_HABER = NO_IMP + TOTAL_IMPONIBLE
+		// TOTAL_IMPONIBLE = BASE_IMP_SIN_BONO + BONO
+		// DCTO_PREVISIONALES = TOTAL_IMPONIBLE * TOTAL_DESC_%
+		//
+		// Sustituyendo y resolviendo para BONO:
+		// AL = NO_IMP + BASE_IMP_SIN_BONO + BONO - (BASE_IMP_SIN_BONO + BONO) * TOTAL_DESC_%
+		// AL = NO_IMP + (BASE_IMP_SIN_BONO + BONO) * (1 - TOTAL_DESC_%)
+		// AL - NO_IMP = (BASE_IMP_SIN_BONO + BONO) * (1 - TOTAL_DESC_%)
+		// (AL - NO_IMP) / (1 - TOTAL_DESC_%) = BASE_IMP_SIN_BONO + BONO
+		// BONO = (AL - NO_IMP) / (1 - TOTAL_DESC_%) - BASE_IMP_SIN_BONO
+
+		double numerador = alcanceLiquidoTarget - noImponible;
+		double denominador = 1.0 - totalDescuentoPorcentaje;
+
+		// Validación: denominador no puede ser cero o negativo
+		if (denominador <= 0.0) {
+			System.err.println("ERROR: Porcentaje de descuentos >= 100% para RUT " + this.rut);
+			return 0.0;
+		}
+
+		double bonoCalculado = (numerador / denominador) - baseImponibleSinBono;
+
+		// Validación: bono no puede ser negativo (requisito del usuario)
+		if (bonoCalculado < 0.0) {
+			System.out.println("ADVERTENCIA: Bono calculado negativo (" + bonoCalculado +
+							 ") para RUT " + this.rut + ". Ajustando a 0.");
+			return 0.0;
+		}
+
+		return bonoCalculado;
+	}
+
+	/**
+	 * Calcula el BONO_PRODUCCION usando el método Newton-Raphson.
+	 * Este método es iterativo y más robusto en casos extremos.
+	 *
+	 * Definimos: f(BONO) = ALCANCE_LIQUIDO_CALCULADO - ALCANCE_LIQUIDO_TARGET
+	 * Buscamos BONO tal que f(BONO) = 0
+	 *
+	 * @param alcanceLiquidoTarget El alcance líquido objetivo del CSV
+	 * @return El bono calculado (>= 0)
+	 */
+	public double calculateBonoByNewtonRaphson(double alcanceLiquidoTarget) {
+		// Componentes que NO dependen del bono
+		double noImponible = this.movilizacion + this.colacion + this.descuentoHerramientas;
+		double baseImponibleSinBono = this.sueldoMensual + this.gratificacion +
+									   this.aguinaldo + this.totalHoraExtra;
+		double totalDescuentoPorcentaje = (this.porcentajePrevision + this.saludPorcentaje + this.afc) / 100.0;
+
+		// Validación
+		if (totalDescuentoPorcentaje >= 1.0) {
+			System.err.println("ERROR: Porcentaje de descuentos >= 100% para RUT " + this.rut);
+			return 0.0;
+		}
+
+		// Configuración Newton-Raphson
+		final int MAX_ITERATIONS = 50;
+		final double TOLERANCE = 0.01; // Tolerancia de 1 centavo
+
+		// Valor inicial: usar método algebraico como semilla
+		double bonoActual = calculateBonoByAlgebraicMethod(alcanceLiquidoTarget);
+
+		// Si el método algebraico ya dio 0, retornar directamente
+		if (bonoActual <= 0.0) {
+			return 0.0;
+		}
+
+		// Iteración Newton-Raphson
+		for (int i = 0; i < MAX_ITERATIONS; i++) {
+			// Calcular ALCANCE_LIQUIDO con el bono actual
+			// ALCANCE_LIQUIDO = TOTAL_HABER - DCTO_PREVISIONALES
+			double totalImponible = baseImponibleSinBono + bonoActual;
+			double totalHaber = noImponible + totalImponible;
+			double dctoPrevisionales = totalImponible * totalDescuentoPorcentaje;
+			double alcanceLiquidoCalculado = totalHaber - dctoPrevisionales;
+
+			// f(BONO) = alcanceLiquidoCalculado - alcanceLiquidoTarget
+			double f = alcanceLiquidoCalculado - alcanceLiquidoTarget;
+
+			// Verificar convergencia
+			if (Math.abs(f) < TOLERANCE) {
+				// Validar que no sea negativo
+				if (bonoActual < 0.0) {
+					System.out.println("ADVERTENCIA: Newton-Raphson convergió a bono negativo para RUT " +
+									 this.rut + ". Ajustando a 0.");
+					return 0.0;
+				}
+				System.out.println("Newton-Raphson convergió en " + (i + 1) + " iteraciones para RUT " + this.rut);
+				return bonoActual;
+			}
+
+			// f'(BONO) = derivada respecto a BONO
+			// d/dBONO[ALCANCE_LIQUIDO] = d/dBONO[NO_IMP + BASE + BONO - (BASE + BONO) * DESC%]
+			//                          = 1 - DESC%
+			double fPrima = 1.0 - totalDescuentoPorcentaje;
+
+			if (Math.abs(fPrima) < 1e-10) {
+				System.err.println("ERROR: Derivada muy pequeña en Newton-Raphson para RUT " + this.rut);
+				break;
+			}
+
+			// Actualización Newton-Raphson: BONO_nuevo = BONO_actual - f(BONO) / f'(BONO)
+			double bonoNuevo = bonoActual - (f / fPrima);
+
+			// Evitar bonos negativos durante la iteración
+			if (bonoNuevo < 0.0) {
+				bonoNuevo = 0.0;
+			}
+
+			bonoActual = bonoNuevo;
+		}
+
+		// Si no convergió, usar el último valor (con validación)
+		System.out.println("ADVERTENCIA: Newton-Raphson no convergió completamente para RUT " +
+						 this.rut + ". Usando último valor.");
+		return Math.max(0.0, bonoActual);
+	}
+
+	/**
+	 * Calcula el BONO_PRODUCCION basándose en el ALCANCE_LIQUIDO del CSV.
+	 * Usa el método configurado en SystemParameter "BONO_CALCULATION_METHOD".
+	 *
+	 * @param alcanceLiquidoTarget El alcance líquido del CSV
+	 * @param calculationMethod El método a usar: "ALGEBRAIC" o "NEWTON_RAPHSON"
+	 * @return El bono calculado
+	 */
+	public double calculateBonoFromAlcanceLiquido(double alcanceLiquidoTarget, String calculationMethod) {
+		if (calculationMethod == null || calculationMethod.isEmpty()) {
+			calculationMethod = "ALGEBRAIC"; // Default
+		}
+
+		calculationMethod = calculationMethod.trim().toUpperCase();
+
+		System.out.println("Calculando BONO para RUT " + this.rut +
+						 " usando método: " + calculationMethod +
+						 " con ALCANCE_LIQUIDO target: " + alcanceLiquidoTarget);
+
+		double bonoCalculado;
+
+		if ("NEWTON_RAPHSON".equals(calculationMethod)) {
+			bonoCalculado = calculateBonoByNewtonRaphson(alcanceLiquidoTarget);
+		} else {
+			// Default a algebraico (más rápido)
+			bonoCalculado = calculateBonoByAlgebraicMethod(alcanceLiquidoTarget);
+		}
+
+		System.out.println("BONO calculado para RUT " + this.rut + ": " + bonoCalculado);
+
+		return bonoCalculado;
+	}
+
 	public double getUIT(double rentaLiquidaImponible) {
 		return 0.0;
 	}

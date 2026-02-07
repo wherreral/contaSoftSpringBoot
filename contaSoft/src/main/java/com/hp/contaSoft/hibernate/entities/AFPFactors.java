@@ -19,7 +19,6 @@ public class AFPFactors extends Base{
 	
 	@Column (name = "name")
 	private String name;
-	
 	@Column( name ="percentaje")
 	private double percentaje;
 

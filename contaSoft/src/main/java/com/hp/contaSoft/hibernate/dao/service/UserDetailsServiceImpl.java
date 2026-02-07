@@ -34,7 +34,7 @@ public class UserDetailsServiceImpl implements UserDetailsService{
         
     	logger.info("UserDetailsServiceImpl username:"+username);
     	
-    	AppUser applicationUser = applicationUserRepository.findByUsername(username);
+    	AppUser applicationUser = applicationUserRepository.findFirstByUsername(username);
         if (applicationUser == null) {
         	System.out.println("NO ENCONTRO");
             throw new UsernameNotFoundException(username);

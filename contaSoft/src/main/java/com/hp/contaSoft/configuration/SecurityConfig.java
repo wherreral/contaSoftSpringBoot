@@ -34,29 +34,71 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
-       // http.cors().and().csrf().disable().authorizeRequests()
     	 http
     	 		.cors().and()
     	 		.csrf().disable().authorizeRequests()
+                // Public authentication endpoints
                 .antMatchers(HttpMethod.POST, SIGN_UP_URL).permitAll()
                 .antMatchers(HttpMethod.POST, SIGN_IN_URL).permitAll()
-                .antMatchers(HttpMethod.GET, "/**").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                .antMatchers(HttpMethod.POST, "/api/auth/logout").permitAll()
+                .antMatchers("/login", "/register").permitAll()
+                // Pages - JSP views (auth is handled via JS/JWT on API calls)
+                .antMatchers(HttpMethod.GET, "/").permitAll()
+                .antMatchers(HttpMethod.GET, "/home").permitAll()
+                // Static resources
+                .antMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
+                // API de clientes - requiere autenticación para multi-tenancy
+                .antMatchers("/api/ui/clientes/**").authenticated()
+                // API de templates - requiere autenticación para multi-tenancy
+                .antMatchers("/api/templates/**").authenticated()
+                // API de AFP - datos globales permitidos, nicknames requieren auth
+                .antMatchers("/api/ui/afp/*/nickname").authenticated()
+                .antMatchers("/api/ui/afp/nicknames").authenticated()
+                .antMatchers("/api/ui/afp/**").permitAll()
+                // API de Health/Isapres - CRUD de configuraciones
+                .antMatchers("/api/ui/health/**").permitAll()
+                // Configuración página
+                .antMatchers("/configuracion/**").permitAll()
+                // Pages served by controllers (JSP views)
+                .antMatchers(HttpMethod.GET, "/clientes").permitAll()
+                .antMatchers(HttpMethod.GET, "/sucursales/**").permitAll()
                 .antMatchers(HttpMethod.POST, "/charges").permitAll()
                 .antMatchers(HttpMethod.POST, "/importBook2").permitAll()
                 .antMatchers(HttpMethod.GET, "/importBook2").permitAll()
+                .antMatchers(HttpMethod.POST, "/importBookAjax").permitAll()
+                .antMatchers(HttpMethod.GET, "/importBookAjax").permitAll()
+                .antMatchers(HttpMethod.GET, "/api/paybookdetails").permitAll()
                 .antMatchers(HttpMethod.POST, "/redirectImportBook").permitAll()
                 .antMatchers(HttpMethod.GET, "/redirectImportBook").permitAll()
-                //.antMatchers(HttpMethod.POST, "/api/clients").permitAll()
-                //.antMatchers(HttpMethod.GET, "/api/clients").permitAll()
-                //.antMatchers(HttpMethod.GET, "/api/paybookinstance/15961703-3").permitAll()
-                //.antMatchers("/login").permitAll()
+                // Protect all other endpoints
                 .anyRequest().authenticated()
                 .and()
                 .addFilterBefore(new CorsFilter(), ChannelProcessingFilter.class)
-                .addFilter(new JWTAuthenticationFilter(authenticationManager()))
+                .addFilter(jwtAuthenticationFilter())
                 .addFilter(new JWTAuthorizationFilter(authenticationManager(), userDetailsService))
-                // this disables session creation on Spring Security
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
+                // Stateless session
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+                // For API endpoints, return 401 instead of redirecting to login
+                .exceptionHandling()
+                    .authenticationEntryPoint((request, response, authException) -> {
+                        String requestURI = request.getRequestURI();
+                        if (requestURI.startsWith("/api/")) {
+                            response.setStatus(401);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"success\":false,\"message\":\"No autenticado. Por favor inicie sesión.\"}");
+                        } else {
+                            response.sendRedirect("/login");
+                        }
+                    });
+    }
+
+    private JWTAuthenticationFilter jwtAuthenticationFilter() throws Exception {
+        JWTAuthenticationFilter filter = new JWTAuthenticationFilter(authenticationManager());
+        // Use /api/auth/login instead of /login to avoid conflict with the login page
+        filter.setFilterProcessesUrl("/api/auth/login");
+        return filter;
     }
 
     public void configureGlobal(AuthenticationManagerBuilder auth) throws Exception {

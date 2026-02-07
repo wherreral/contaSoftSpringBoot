@@ -138,8 +138,20 @@ public class APIRestController {
 	}
 
     @GetMapping(value = "/paybookinstance/{clientId}", produces = MediaType.APPLICATION_JSON_VALUE)
-    public List<PayBookInstance> getPaybookInstanceById(@PathVariable Long clientId) {
-        List<PayBookInstance> payBookInstanceList = (List<PayBookInstance>) payBookInstanceRepository.findAllByTaxpayerId(clientId);
+    public List<PayBookInstance> getPaybookInstanceById(@PathVariable Long clientId, Authentication authentication) {
+        // Obtener familyId del usuario autenticado
+        String familyId = null;
+        if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof CurrentUser) {
+            CurrentUser currentUser = (CurrentUser) authentication.getPrincipal();
+            familyId = currentUser.getFamilId();
+        }
+        
+        List<PayBookInstance> payBookInstanceList;
+        if (familyId != null) {
+            payBookInstanceList = (List<PayBookInstance>) payBookInstanceRepository.findAllByFamilyIdAndTaxpayerId(familyId, clientId);
+        } else {
+            payBookInstanceList = (List<PayBookInstance>) payBookInstanceRepository.findAllByTaxpayerId(clientId);
+        }
         return payBookInstanceList;
     }
 

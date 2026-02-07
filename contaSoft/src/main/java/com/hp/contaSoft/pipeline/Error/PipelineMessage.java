@@ -26,6 +26,7 @@ public class PipelineMessage {
 	private String errorMessageOutput;
 	private String fileClientRutOutput;
 	private String fileMonthOutput;
+	private String familyId;
 	
 	
 	public PipelineMessage() {

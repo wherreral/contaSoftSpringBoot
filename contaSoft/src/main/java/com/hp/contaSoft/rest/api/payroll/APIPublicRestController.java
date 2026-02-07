@@ -56,7 +56,7 @@ public class APIPublicRestController {
 		logger.warn("sign-up");
 		
 		//0. Validate user doesn't exist
-		AppUser au = userRepository.findByUsername(user.getUsername());
+		AppUser au = userRepository.findFirstByUsername(user.getUsername());
 		if(au != null) {
 			logger.info("User already exist");
 			return false;

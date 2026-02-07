@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.databind.JsonMappingException;
@@ -82,6 +83,7 @@ public class PipelineManager {
 		
 	}
 	
+	@Transactional
 	public PipelineMessage execute(PipelineMessage pm) throws InterruptedException {
 		
 		System.out.println("Method:execute");
@@ -191,7 +193,7 @@ public class PipelineManager {
 				if(i < pcl.size())
 					System.out.println(pcl.get(i).getName());
 				
-				TimeUnit.SECONDS.sleep(3);
+				TimeUnit.SECONDS.sleep(1);
 				
 				if(containsLink(pcl, classNameLink)) 
 				{
@@ -235,7 +237,7 @@ public class PipelineManager {
 		}
 		
 		System.out.println("Method:FIN startChain- ");
-		TimeUnit.SECONDS.sleep(3);
+		TimeUnit.SECONDS.sleep(1);
 		
 		return pm;
 	}

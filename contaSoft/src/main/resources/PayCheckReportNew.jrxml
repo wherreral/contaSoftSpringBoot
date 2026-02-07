@@ -79,7 +79,7 @@
     <field name="aguinaldo" class="java.lang.Double"/>
     <field name="asignacionFamiliar" class="java.lang.Integer"/>
     <field name="totalAsignacionFamiliar" class="java.lang.Double"/>
-    <field name="descuentoHerramientas" class="java.lang.Integer"/>
+    <field name="descuentoHerramientas" class="java.lang.Double"/>
     <field name="totalHaber" class="java.lang.Double"/>
     
     <!-- Descuentos Previsionales -->
@@ -91,7 +91,7 @@
     <field name="rentaLiquidaImponible" class="java.lang.Double"/>
     
     <!-- Descuentos Personales -->
-    <field name="afc" class="java.lang.Integer"/>
+    <field name="afc" class="java.lang.Double"/>
     <field name="apv" class="java.lang.Integer"/>
     <field name="prestamos" class="java.lang.Double"/>
     <field name="seguroOncologico" class="java.lang.Double"/>

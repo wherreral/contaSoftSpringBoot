@@ -12,4 +12,7 @@ public interface AFPFactorsRepository extends CrudRepository<AFPFactors, Long>{
 
 	AFPFactors findByName(String prevision);
 
+	// Case-insensitive exact name lookup
+	AFPFactors findByNameIgnoreCase(String prevision);
+
 }
