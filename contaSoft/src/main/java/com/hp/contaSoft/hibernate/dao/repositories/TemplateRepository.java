@@ -27,7 +27,13 @@ public interface TemplateRepository extends CrudRepository<Template, Long> {
     
     @Query("SELECT t FROM Template t WHERE t.taxpayer.familyId = :familyId")
     List<Template> findByTaxpayerFamilyId(@Param("familyId") String familyId);
+
+    @Query("SELECT t FROM Template t LEFT JOIN t.taxpayer tp WHERE tp.familyId = :familyId OR (tp IS NULL AND t.family = :familyId)")
+    List<Template> findAllByFamilyId(@Param("familyId") String familyId);
     
     @Query("SELECT t FROM Template t WHERE t.taxpayer.familyId = :familyId AND t.isActive = true")
     Optional<Template> findActiveByFamilyId(@Param("familyId") String familyId);
+
+    @Query("SELECT t FROM Template t WHERE t.family = :familyId AND t.defaultTemplate = true")
+    Optional<Template> findDefaultByFamily(@Param("familyId") String familyId);
 }

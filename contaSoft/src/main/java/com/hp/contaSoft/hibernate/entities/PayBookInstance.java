@@ -44,6 +44,9 @@ public class PayBookInstance extends Base{
 	
 	@Column
 	private String month;
+
+	@Column(name = "period_year")
+	private String year;
 	
 	@Column
 	private String details;
@@ -107,6 +110,17 @@ public class PayBookInstance extends Base{
 		this.taxpayer = tax; 
 		this.status = status;
 	}
+
+	public PayBookInstance(String month, String year, String details, String fileName, String rut, Taxpayer tax, String status) {
+		super();
+		this.month = month;
+		this.year = year;
+		this.details = details;
+		this.fileName = fileName;
+		this.rut = rut;
+		this.taxpayer = tax;
+		this.status = status;
+	}
 	
 	
 	public List<com.hp.contaSoft.excel.entities.PayBookDetails> getPayBookDetails() {
@@ -119,7 +133,7 @@ public class PayBookInstance extends Base{
 
 	@Override
 	public String toString() {
-		return "PayBookInstance [version=" + version + ", month=" + month + ", details="
+		return "PayBookInstance [version=" + version + ", month=" + month + ", year=" + year + ", details="
 				+ details + "]";
 	}
 	

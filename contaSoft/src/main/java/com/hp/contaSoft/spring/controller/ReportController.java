@@ -25,8 +25,11 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 import com.hp.contaSoft.hibernate.dao.repositories.PayBookDetailsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.PayBookInstanceRepository;
+import com.hp.contaSoft.hibernate.dao.repositories.SubsidiaryRepository;
 import com.hp.contaSoft.hibernate.entities.PayBookDetails;
 import com.hp.contaSoft.hibernate.entities.PayBookInstance;
+import com.hp.contaSoft.hibernate.entities.Subsidiary;
+import com.hp.contaSoft.hibernate.entities.Taxpayer;
 
 import net.sf.jasperreports.engine.JRException;
 import net.sf.jasperreports.engine.JasperCompileManager;
@@ -48,6 +51,9 @@ public class ReportController {
 
     @Autowired
     private PayBookDetailsRepository payBookDetailsRepository;
+
+    @Autowired
+    private SubsidiaryRepository subsidiaryRepository;
     
     // Cache del reporte compilado para evitar compilación en cada request
     private JasperReport cachedJasperReport;
@@ -93,46 +99,16 @@ public class ReportController {
             logger.info("⏱️  [2/4] Consulta detalles ({} registros): {} ms", 
                 details != null ? details.size() : 0, step2Time);
 
-            // Paso 3: Mapear datos y calcular totales
+            // Paso 3: Resolver subsidiaries y mapear datos con totales por registro
             long step3Start = System.currentTimeMillis();
-            Collection<Map<String, ?>> mappedDetails = mapDetailsToCollection(details);
-            
-            // Calcular totales para parámetros del reporte
-            double totalRemuneracionNoImponible = 0.0;
-            double totalDescuentosPrevisionales = 0.0;
-            double totalDescuentosPersonales = 0.0;
-            double alcanceLiquido = 0.0;
-            double liquidoAPagar = 0.0;
-            String nombreTrabajador = "Nombre del Trabajador";
-            
-            if (details != null && !details.isEmpty()) {
-                com.hp.contaSoft.excel.entities.PayBookDetails firstDetail = details.get(0);
-                
-                // Calcular total remuneración no imponible
-                totalRemuneracionNoImponible = firstDetail.getColacion() + 
-                                               firstDetail.getMovilizacion() + 
-                                               firstDetail.getTotalAsignacionFamiliar() +
-                                               firstDetail.getDescuentoHerramientas();
-                
-                // Calcular total descuentos previsionales
-                totalDescuentosPrevisionales = firstDetail.getValorPrevision() + 
-                                               firstDetail.getValorSalud() + 
-                                               firstDetail.getValorAFC();
-                
-                // Calcular total descuentos personales
-                totalDescuentosPersonales = firstDetail.getApv() + 
-                                            firstDetail.getPrestamos() + 
-                                            firstDetail.getValorIUT();
-                
-                // Calcular alcance líquido
-                alcanceLiquido = firstDetail.getTotalHaber() - totalDescuentosPrevisionales - totalDescuentosPersonales;
-                
-                // Calcular líquido a pagar
-                liquidoAPagar = alcanceLiquido - firstDetail.getAnticipo();
-                
-                // Obtener nombre del trabajador (deberías obtenerlo de la BD)
-                nombreTrabajador = "Alex Antonio Gomez Peña"; // TODO: Obtener desde BD
-            }
+
+            // Cargar subsidiaries del taxpayer una sola vez
+            Taxpayer taxpayer = opt.get().getTaxpayer();
+            List<Subsidiary> subs = (taxpayer != null)
+                ? subsidiaryRepository.findByTaxpayerId(taxpayer.getId())
+                : new ArrayList<>();
+
+            Collection<Map<String, ?>> mappedDetails = mapDetailsToCollection(details, taxpayer, subs);
             
             long step3Time = System.currentTimeMillis() - step3Start;
             logger.info("⏱️  [3/4] Mapeo de datos y cálculos: {} ms", step3Time);
@@ -154,15 +130,6 @@ public class ReportController {
             JRMapCollectionDataSource dataSource = new JRMapCollectionDataSource(mappedDetails);
             Map<String, Object> params = new HashMap<>();
             params.put("payBookInstance", opt.get());
-            params.put("empresaNombre", "EMPRESA CONTRATISTA TRES ALVAREZ LIMITADA");
-            params.put("empresaRut", "76.456.320-4");
-            params.put("numeroDocumento", 1);
-            params.put("nombreTrabajador", nombreTrabajador);
-            params.put("totalRemuneracionNoImponible", totalRemuneracionNoImponible);
-            params.put("totalDescuentosPrevisionales", totalDescuentosPrevisionales);
-            params.put("totalDescuentosPersonales", totalDescuentosPersonales);
-            params.put("alcanceLiquido", alcanceLiquido);
-            params.put("liquidoAPagar", liquidoAPagar);
 
             JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, params, dataSource);
             long step4Time = System.currentTimeMillis() - step4Start;
@@ -201,64 +168,219 @@ public class ReportController {
     /**
      * Método optimizado para mapear detalles a colección con todos los campos
      */
-    private Collection<Map<String, ?>> mapDetailsToCollection(List<com.hp.contaSoft.excel.entities.PayBookDetails> details) {
+    private Collection<Map<String, ?>> mapDetailsToCollection(
+            List<com.hp.contaSoft.excel.entities.PayBookDetails> details,
+            Taxpayer taxpayer,
+            List<Subsidiary> subs) {
         if (details == null || details.isEmpty()) {
             return new ArrayList<>();
         }
-        
+
         Collection<Map<String, ?>> mappedDetails = new ArrayList<>(details.size());
         for (com.hp.contaSoft.excel.entities.PayBookDetails d : details) {
-            Map<String, Object> m = new HashMap<>(40); // tamaño ampliado para todos los campos
-            
+            Map<String, Object> m = new HashMap<>(60);
+
             // Datos básicos
             m.put("id", d.getId() != null ? d.getId() : 0L);
             m.put("rut", d.getRut() != null ? d.getRut() : "");
             m.put("centroCosto", d.getCentroCosto() != null ? d.getCentroCosto() : "");
             m.put("diasTrabajados", d.getDiasTrabajados());
-            m.put("prevision", d.getPrevision() != null ? d.getPrevision() : "");
-            m.put("salud", d.getSalud() != null ? d.getSalud() : "");
+            m.put("prevision", toTitleCase(d.getPrevision()));
+            m.put("salud", toTitleCase(d.getSalud()));
             m.put("saludPorcentaje", d.getSaludPorcentaje() / 100);
-            
+
             // Remuneración Imponible
-            m.put("sueldoBase", d.getSueldoBase());
-            m.put("sueldoMensual", d.getSueldoMensual());
-            m.put("gratificacion", d.getGratificacion());
-            m.put("bonoProduccion", d.getBonoProduccion());
-            m.put("horasExtra", d.getHorasExtra());
-            m.put("totalHoraExtra", d.getTotalHoraExtra());
-            m.put("totalImponible", d.getTotalImponible());
-            
+            m.put("sueldoBase", roundUp(d.getSueldoBase()));
+            m.put("sueldoMensual", roundUp(d.getSueldoMensual()));
+            m.put("gratificacion", roundUp(d.getGratificacion()));
+            m.put("bonoProduccion", roundUp(d.getBonoProduccion()));
+            m.put("horasExtra", roundUp(d.getHorasExtra()));
+            m.put("totalHoraExtra", roundUp(d.getTotalHoraExtra()));
+            m.put("totalImponible", roundUp(d.getTotalImponible()));
+
             // Remuneración No Imponible
-            m.put("colacion", d.getColacion());
-            m.put("movilizacion", d.getMovilizacion());
-            m.put("aguinaldo", d.getAguinaldo());
+            m.put("colacion", roundUp(d.getColacion()));
+            m.put("movilizacion", roundUp(d.getMovilizacion()));
+            m.put("aguinaldo", roundUp(d.getAguinaldo()));
             m.put("asignacionFamiliar", d.getAsignacionFamiliar());
-            m.put("totalAsignacionFamiliar", d.getTotalAsignacionFamiliar());
-            m.put("descuentoHerramientas", d.getDescuentoHerramientas());
-            m.put("totalHaber", d.getTotalHaber());
-            
+            m.put("totalAsignacionFamiliar", roundUp(d.getTotalAsignacionFamiliar()));
+            m.put("descuentoHerramientas", roundUp(d.getDescuentoHerramientas()));
+            m.put("totalHaber", roundUp(d.getTotalHaber()));
+
             // Descuentos Previsionales
             m.put("porcentajePrevision", d.getPorcentajePrevision() / 100);
-            m.put("valorPrevision", d.getValorPrevision());
-            m.put("valorSalud", d.getValorSalud());
-            m.put("valorAFC", d.getValorAFC());
-            m.put("valorSeguroOAccidentes", d.getValorSeguroOAccidentes());
-            m.put("rentaLiquidaImponible", d.getRentaLiquidaImponible());
-            
+            m.put("valorPrevision", roundUp(d.getValorPrevision()));
+            m.put("valorSalud", roundUp(d.getValorSalud()));
+            m.put("valorAFC", roundUp(d.getValorAFC()));
+            m.put("valorSeguroOAccidentes", roundUp(d.getValorSeguroOAccidentes()));
+            m.put("rentaLiquidaImponible", roundUp(d.getRentaLiquidaImponible()));
+
             // Descuentos Personales
-            m.put("afc", d.getAfc());
+            m.put("afc", roundUp(d.getAfc()));
             m.put("apv", d.getApv());
-            m.put("prestamos", d.getPrestamos());
-            m.put("seguroOncologico", d.getSeguroOncologico());
+            m.put("prestamos", roundUp(d.getPrestamos()));
+            m.put("seguroOncologico", roundUp(d.getSeguroOncologico()));
             m.put("seguroOAccidentes", d.getSeguroOAccidentes() != null ? d.getSeguroOAccidentes() : "");
-            m.put("valorIUT", d.getValorIUT());
-            m.put("anticipo", d.getAnticipo());
-            
+            m.put("valorIUT", roundUp(d.getValorIUT()));
+            m.put("anticipo", roundUp(d.getAnticipo()));
+            m.put("descApvCtaAh", roundUp(d.getDescApvCtaAh()));
+            m.put("descPtmoCcaaff", roundUp(d.getDescPtmoCcaaff()));
+            m.put("descPtmoSolidario", roundUp(d.getDescPtmoSolidario()));
+
             // Otros campos
-            m.put("valorHora", d.getValorHora());
-            
+            m.put("valorHora", roundUp(d.getValorHora()));
+
+            // Aportes empleador
+            m.put("afcEmpleador", roundUp(d.getAfcEmpleador()));
+            m.put("sisEmpleador", roundUp(d.getSisEmpleador()));
+
+            // === Totales calculados por registro ===
+
+            double totalRemuneracionNoImponible = roundUp(d.getColacion()) +
+                roundUp(d.getMovilizacion()) + roundUp(d.getTotalAsignacionFamiliar()) + roundUp(d.getDescuentoHerramientas());
+            m.put("totalRemuneracionNoImponible", roundUp(totalRemuneracionNoImponible));
+
+            double totalDescuentosPrevisionales = roundUp(d.getValorPrevision()) +
+                roundUp(d.getValorSalud()) + roundUp(d.getValorAFC());
+            m.put("totalDescuentosPrevisionales", roundUp(totalDescuentosPrevisionales));
+
+            double totalDescuentosPersonales = roundUp(d.getDescApvCtaAh()) +
+                roundUp(d.getDescPtmoCcaaff()) + roundUp(d.getDescPtmoSolidario()) + roundUp(d.getValorIUT());
+            m.put("totalDescuentosPersonales", roundUp(totalDescuentosPersonales));
+
+            // Alcance líquido: usar valor del CSV si existe, sino calcular
+            double alcanceLiquido;
+            if (d.getAlcanceLiquido() != null && d.getAlcanceLiquido() > 0) {
+                alcanceLiquido = roundUp(d.getAlcanceLiquido());
+            } else {
+                alcanceLiquido = roundUp(d.getTotalHaber() - totalDescuentosPrevisionales);
+            }
+            m.put("alcanceLiquido", alcanceLiquido);
+
+            // Líquido a pagar = alcance líquido - descuentos personales - anticipos
+            double liquidoAPagar = alcanceLiquido - roundUp(totalDescuentosPersonales) - roundUp(d.getAnticipo());
+            m.put("liquidoAPagar", roundUp(liquidoAPagar));
+            m.put("liquidoEnPalabras", convertirMontoPalabras(liquidoAPagar));
+
+            // Total costo empleador
+            m.put("totalCostoEmpleador", roundUp(d.getTotalCostoEmpleador()));
+
+            // === Empresa y sucursal por centroCosto ===
+            String empresaNombre = "";
+            String empresaRut = "";
+            String subsidiaryNombre = "";
+
+            if (taxpayer != null) {
+                String centroCosto = d.getCentroCosto();
+                if (centroCosto != null && !centroCosto.trim().isEmpty()) {
+                    String cc = centroCosto.trim();
+                    Subsidiary matched = null;
+                    for (Subsidiary sub : subs) {
+                        if (sub.getName() != null && sub.getName().trim().equalsIgnoreCase(cc)) {
+                            matched = sub;
+                            break;
+                        }
+                    }
+                    if (matched == null) {
+                        for (Subsidiary sub : subs) {
+                            if (sub.getSubsidiaryId() != null && sub.getSubsidiaryId().trim().equalsIgnoreCase(cc)) {
+                                matched = sub;
+                                break;
+                            }
+                        }
+                    }
+                    if (matched != null) {
+                        empresaNombre = taxpayer.getName();
+                        empresaRut = taxpayer.getRut();
+                        subsidiaryNombre = matched.getName();
+                    }
+                }
+            }
+            m.put("empresaNombre", empresaNombre);
+            m.put("empresaRut", empresaRut);
+            m.put("subsidiaryNombre", subsidiaryNombre);
+
             mappedDetails.add(m);
         }
         return mappedDetails;
+    }
+
+    private static final String[] UNIDADES = {
+        "", "UN", "DOS", "TRES", "CUATRO", "CINCO", "SEIS", "SIETE", "OCHO", "NUEVE",
+        "DIEZ", "ONCE", "DOCE", "TRECE", "CATORCE", "QUINCE",
+        "DIECISEIS", "DIECISIETE", "DIECIOCHO", "DIECINUEVE", "VEINTE",
+        "VEINTIUN", "VEINTIDOS", "VEINTITRES", "VEINTICUATRO", "VEINTICINCO",
+        "VEINTISEIS", "VEINTISIETE", "VEINTIOCHO", "VEINTINUEVE"
+    };
+
+    private static final String[] DECENAS = {
+        "", "", "", "TREINTA", "CUARENTA", "CINCUENTA",
+        "SESENTA", "SETENTA", "OCHENTA", "NOVENTA"
+    };
+
+    private static final String[] CENTENAS = {
+        "", "CIENTO", "DOSCIENTOS", "TRESCIENTOS", "CUATROCIENTOS", "QUINIENTOS",
+        "SEISCIENTOS", "SETECIENTOS", "OCHOCIENTOS", "NOVECIENTOS"
+    };
+
+    private String convertirMontoPalabras(double monto) {
+        long entero = Math.round(Math.abs(monto));
+        if (entero == 0) {
+            return "CERO PESOS";
+        }
+        String resultado = convertirNumero(entero).trim();
+        return resultado + " PESOS";
+    }
+
+    private String convertirNumero(long numero) {
+        if (numero == 0) return "";
+        if (numero == 100) return "CIEN";
+
+        if (numero < 30) {
+            return UNIDADES[(int) numero];
+        }
+        if (numero < 100) {
+            int decena = (int) (numero / 10);
+            int unidad = (int) (numero % 10);
+            return DECENAS[decena] + (unidad > 0 ? " Y " + UNIDADES[unidad] : "");
+        }
+        if (numero < 1000) {
+            int centena = (int) (numero / 100);
+            long resto = numero % 100;
+            return CENTENAS[centena] + (resto > 0 ? " " + convertirNumero(resto) : "");
+        }
+        if (numero < 1000000) {
+            long miles = numero / 1000;
+            long resto = numero % 1000;
+            String milesStr = (miles == 1) ? "MIL" : convertirNumero(miles) + " MIL";
+            return milesStr + (resto > 0 ? " " + convertirNumero(resto) : "");
+        }
+        if (numero < 1000000000L) {
+            long millones = numero / 1000000;
+            long resto = numero % 1000000;
+            String millonesStr = (millones == 1) ? "UN MILLON" : convertirNumero(millones) + " MILLONES";
+            return millonesStr + (resto > 0 ? " " + convertirNumero(resto) : "");
+        }
+        return String.valueOf(numero);
+    }
+
+    /**
+     * Trunca a 2 decimales y redondea al alza (ceil) para obtener un entero.
+     * Ej: 539000.833 -> truncar -> 539000.83 -> ceil -> 539001
+     */
+    private double roundUp(double value) {
+        double truncated = Math.floor(value * 100) / 100;
+        return Math.ceil(truncated);
+    }
+
+    private String toTitleCase(String text) {
+        if (text == null || text.isEmpty()) return "";
+        String[] words = text.trim().toLowerCase().split("\\s+");
+        StringBuilder sb = new StringBuilder();
+        for (String word : words) {
+            if (sb.length() > 0) sb.append(' ');
+            sb.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
+        }
+        return sb.toString();
     }
 }

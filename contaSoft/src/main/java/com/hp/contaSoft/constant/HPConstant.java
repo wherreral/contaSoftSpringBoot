@@ -6,6 +6,8 @@ import java.util.Map;
 public class HPConstant {
 
 	public static final String FILE_EXTENSION = "csv";
+	public static final java.util.Set<String> VALID_FILE_EXTENSIONS =
+		new java.util.HashSet<>(java.util.Arrays.asList("csv", "xls", "xlsx"));
 	public static final String REPORT_EXTENSION = "pdf";
 	public static final String PAYROLL_FILE_STATUS = "Pendiente";
 	public static final int SLEEP_TIME = 0;

@@ -9,9 +9,11 @@ import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.SystemPropertyUtils;
 
 import com.hp.contaSoft.constant.HPConstant;
+import com.hp.contaSoft.constant.Regimen;
 import com.hp.contaSoft.excel.entities.PayBookDetails;
 import com.hp.contaSoft.hibernate.dao.repositories.AFPFactorsRepository;
 import com.hp.contaSoft.hibernate.dao.repositories.AFPFactorsRepositoryImpl;
@@ -59,42 +62,9 @@ public class FileUtilsService {
 	AfpFactorNicknameRepository afpFactorNicknameRepository;
     @Autowired
     private com.hp.contaSoft.hibernate.dao.service.SystemParameterService systemParameterService;
+	@Autowired
+	private com.hp.contaSoft.service.ReferenceDataCache referenceDataCache;
 
-	/**
-	 * Resolve an AFPFactors by the incoming prevision string.
-	 * Strategy:
-	 *  - normalize (trim, remove leading 'AFP ')
-	 *  - try name exact case-insensitive
-	 *  - try nickname case-insensitive (global entries in afp_factor_nickname)
-	 *  - return null if not found
-	 */
-	private AFPFactors resolveAfp(String prevision) {
-		if (prevision == null) return null;
-		String s = prevision.trim();
-		// remove leading 'AFP ' if present (case-insensitive)
-		if (s.length() > 4 && s.toUpperCase().startsWith("AFP ")) {
-			s = s.substring(4).trim();
-		}
-
-		try {
-			AFPFactors af = afpFactorsRepository.findByNameIgnoreCase(s);
-			if (af != null) return af;
-		} catch (Exception e) {
-			// ignore and try nickname lookup
-		}
-
-		try {
-			java.util.List<AfpFactorNickname> nicks = afpFactorNicknameRepository.findByNicknameIgnoreCase(s);
-			if (nicks != null && !nicks.isEmpty()) {
-				AfpFactorNickname nick = nicks.get(0);
-				return afpFactorsRepository.findById(nick.getAfpFactorId()).orElse(null);
-			}
-		} catch (Exception e) {
-			// ignore
-		}
-
-		return null;
-	}
 	@Autowired
 	TaxpayerRepository taxpayerRepository;
 	@Autowired
@@ -141,59 +111,81 @@ public class FileUtilsService {
 			System.out.println("Contenido del archivo:");
 			System.out.println(new String(fileBytes, "UTF-8"));
 			
-			// Crear stream para diagnóstico
-			java.io.BufferedReader br = new java.io.BufferedReader(
-				new java.io.InputStreamReader(new java.io.ByteArrayInputStream(fileBytes))
-			);
-			
-			String headerLine = br.readLine();
-			System.out.println("=== DIAGNÓSTICO CSV ===");
-			System.out.println("Header leído: " + headerLine);
-			if(headerLine != null) {
-				String[] headers = headerLine.split(";");
-				System.out.println("Cantidad de columnas en header del archivo: " + headers.length);
-				System.out.println("Columnas: " + java.util.Arrays.toString(headers));
+			List<PayBookDetails> detailsList;
+
+			switch (pmOutput.getFileExtension()) {
+				case "xls":
+				case "xlsx": {
+					System.out.println("=== PARSING EXCEL ===");
+					detailsList = com.hp.contaSoft.utils.ExcelParser.parse(
+						new java.io.ByteArrayInputStream(fileBytes)
+					);
+					break;
+				}
+				case "csv":
+				default: {
+					// Diagnóstico CSV
+					java.io.BufferedReader br = new java.io.BufferedReader(
+						new java.io.InputStreamReader(new java.io.ByteArrayInputStream(fileBytes))
+					);
+					String headerLine = br.readLine();
+					System.out.println("=== DIAGNÓSTICO CSV ===");
+					System.out.println("Header leído: " + headerLine);
+					if (headerLine != null) {
+						String[] headers = headerLine.split(";");
+						System.out.println("Cantidad de columnas en header del archivo: " + headers.length);
+						System.out.println("Columnas: " + java.util.Arrays.toString(headers));
+					}
+					String firstDataLine = br.readLine();
+					if (firstDataLine != null) {
+						String[] dataFields = firstDataLine.split(";", -1);
+						System.out.println("Primera línea de datos: " + firstDataLine);
+						System.out.println("Cantidad de campos en datos: " + dataFields.length);
+						System.out.println("Campos: " + java.util.Arrays.toString(dataFields));
+					}
+					br.close();
+
+					// Normalizar headers (aliases) antes de parsear
+					String fileContent = new String(fileBytes, "UTF-8");
+					int firstNewline = fileContent.indexOf('\n');
+					if (firstNewline > 0) {
+						String originalHeader = fileContent.substring(0, firstNewline).replace("\r", "");
+						String normalizedHeader = com.hp.contaSoft.utils.HeaderAliases.normalizeHeaderLine(originalHeader, ";");
+						if (!originalHeader.equals(normalizedHeader)) {
+							System.out.println("Headers normalizados: " + originalHeader + " -> " + normalizedHeader);
+							fileContent = normalizedHeader + fileContent.substring(firstNewline);
+							fileBytes = fileContent.getBytes("UTF-8");
+						}
+					}
+
+					// Parser CSV con OpenCSV
+					Reader reader = new InputStreamReader(new java.io.ByteArrayInputStream(fileBytes));
+					CsvToBean<PayBookDetails> cb = new CsvToBean<>();
+					HeaderColumnNameMappingStrategy<PayBookDetails> hc = new HeaderColumnNameMappingStrategy<PayBookDetails>();
+					hc.setType(PayBookDetails.class);
+					cb = new CsvToBeanBuilder<PayBookDetails>(reader)
+						.withType(PayBookDetails.class)
+						.withMappingStrategy(hc)
+						.withIgnoreLeadingWhiteSpace(true)
+						.withSeparator(';')
+						.withThrowExceptions(false)
+						.build();
+					detailsList = cb.parse();
+
+					// Capturar errores de parsing
+					if (cb.getCapturedExceptions() != null && !cb.getCapturedExceptions().isEmpty()) {
+						System.err.println("=== ERRORES DE PARSING CSV ===");
+						for (Exception ex : cb.getCapturedExceptions()) {
+							System.err.println("Error: " + ex.getMessage());
+							if (ex instanceof com.opencsv.exceptions.CsvRequiredFieldEmptyException) {
+								System.err.println("Revise el diagnóstico arriba para ver discrepancia de columnas");
+							}
+							ex.printStackTrace();
+						}
+					}
+					break;
+				}
 			}
-			
-			// Leer primera línea de datos para comparar
-			String firstDataLine = br.readLine();
-			if(firstDataLine != null) {
-				String[] dataFields = firstDataLine.split(";", -1); // -1 para incluir campos vacíos
-				System.out.println("Primera línea de datos: " + firstDataLine);
-				System.out.println("Cantidad de campos en datos: " + dataFields.length);
-				System.out.println("Campos: " + java.util.Arrays.toString(dataFields));
-			}
-			br.close();
-			
-			// Crear nuevo stream desde los bytes para el parser
-			Reader reader = new InputStreamReader(new java.io.ByteArrayInputStream(fileBytes));
-			
-			CsvToBean<PayBookDetails> cb = new CsvToBean<>();
-	        HeaderColumnNameMappingStrategy<PayBookDetails> hc = new HeaderColumnNameMappingStrategy<PayBookDetails>();
-	        hc.setType(PayBookDetails.class);
-	    
-	        cb = new CsvToBeanBuilder<PayBookDetails>(reader)
-	          .withType(PayBookDetails.class)
-	          .withMappingStrategy(hc)
-	          .withIgnoreLeadingWhiteSpace(true)
-	          .withSeparator(';')
-	          .withThrowExceptions(false)
-	          .build();
-	    
-	        //List of PayBookDetails - Entity with file data
-	        List<PayBookDetails> detailsList = cb.parse();
-	        
-	        // Capturar errores de parsing
-	        if(cb.getCapturedExceptions() != null && !cb.getCapturedExceptions().isEmpty()) {
-	        	System.err.println("=== ERRORES DE PARSING CSV ===");
-	        	for(Exception ex : cb.getCapturedExceptions()) {
-	        		System.err.println("Error: " + ex.getMessage());
-	        		if(ex instanceof com.opencsv.exceptions.CsvRequiredFieldEmptyException) {
-	        			System.err.println("Revise el diagnóstico arriba para ver discrepancia de columnas");
-	        		}
-	        		ex.printStackTrace();
-	        	}
-	        }
 	        
 			System.out.println("DetailList="+detailsList );
 			System.out.println("DetailList SIZE="+detailsList.size());
@@ -243,11 +235,46 @@ public class FileUtilsService {
 	    	System.out.println("Lista pbd inicial size: " + pbd.size());
 	    	
 	    	int processedCount = 0;
+
+	    	// Pre-cargar parametros del sistema (una sola vez, fuera del loop)
+	    	double afcDefault = 0.0;
+	    	try {
+	    		java.util.List<com.hp.contaSoft.hibernate.entities.SystemParameter> afcParams = systemParameterService.findByNameIgnoreCase("AFC");
+	    		if (afcParams != null && !afcParams.isEmpty()) {
+	    			String val = afcParams.get(0).getValue();
+	    			if (val != null && !val.isEmpty()) {
+	    				afcDefault = Double.parseDouble(val.replace(',', '.').trim());
+	    			}
+	    		}
+	    	} catch (Exception ex) {
+	    		System.err.println("Error leyendo parametro AFC: " + ex.getMessage());
+	    	}
+
+	    	String bonoCalculationMethod = "ALGEBRAIC";
+	    	try {
+	    		java.util.List<com.hp.contaSoft.hibernate.entities.SystemParameter> methodParams = systemParameterService.findByNameIgnoreCase("BONO_CALCULATION_METHOD");
+	    		if (methodParams != null && !methodParams.isEmpty()) {
+	    			bonoCalculationMethod = methodParams.get(0).getValue();
+	    		}
+	    	} catch (Exception ex) {
+	    		System.err.println("Error leyendo BONO_CALCULATION_METHOD, usando default: " + ex.getMessage());
+	    	}
+
+	    	Regimen regimenCliente = Regimen.INDEFINIDO;
+	    	if (pbi.getTaxpayer() != null && pbi.getTaxpayer().getRegimen() != null) {
+	    		regimenCliente = pbi.getTaxpayer().getRegimen();
+	    	}
+
 	    	//Loop List of PayBookDetails
 	        for(PayBookDetails detail : detailsList)
 	        {
 	        	processedCount++;
 	        	System.out.println("--- Procesando detalle #" + processedCount + " ---");
+
+	        	// Si el archivo no trae REGIMEN, usar el configurado en el cliente.
+	        	if (detail.getRegimen() == null || detail.getRegimen().trim().isEmpty()) {
+	        		detail.setRegimen(regimenCliente.name());
+	        	}
 
 	        	/*****
             	 * 5.Calculate Fields
@@ -261,6 +288,7 @@ public class FileUtilsService {
 	        	 */
 	        	boolean calcularBonoAutomatico = false;
 	        	Double alcanceLiquidoTarget = detail.getAlcanceLiquido();
+	        	System.out.println("DEBUG ALCANCE_LIQUIDO: RUT=" + detail.getRut() + " valor=" + alcanceLiquidoTarget + " bono=" + detail.getBonoProduccion());
 
 	        	if (alcanceLiquidoTarget != null && alcanceLiquidoTarget > 0.0) {
 	        		System.out.println("=== MODO CÁLCULO AUTOMÁTICO DE BONO ===");
@@ -276,10 +304,9 @@ public class FileUtilsService {
 	        	 * static values
 	        	 */
 
-				// Resolve AFP by name or nickname (no 'contains')
-				AFPFactors afp = resolveAfp(detail.getPrevision());
+				// Resolve AFP by name or nickname (from cache)
+				AFPFactors afp = referenceDataCache.findAfp(detail.getPrevision());
 	    		System.out.println("afp="+afp);
-	    		TimeUnit.SECONDS.sleep(HPConstant.SLEEP_TIME);
 	        	if(afp!= null)
 	    			detail.setPorcentajePrevision(afp.getPercentaje());
 
@@ -299,7 +326,7 @@ public class FileUtilsService {
 	        	/**
 	        	 * PASO 2: Asignación Familiar (se calcula antes de los descuentos)
 	        	 */
-	        	Double amount = aFamiliarRepository.getAsigFamiliarAmount(
+	        	Double amount = referenceDataCache.findAsigFamiliarAmount(
 	        		detail.getSueldoMensual() + detail.getGratificacion() +
 	        		detail.getBonoProduccion() + detail.getAguinaldo() + detail.getTotalHoraExtra()
 	        	);
@@ -311,20 +338,15 @@ public class FileUtilsService {
 
 				/**
 				 * PASO 3: Configurar AFC desde SystemParameter si no viene en CSV
+				 * AFC solo aplica a contratos INDEFINIDO
 				 */
-				if (detail.getAfc() == 0.0) {
-					try {
-						java.util.List<com.hp.contaSoft.hibernate.entities.SystemParameter> params = systemParameterService.findByNameIgnoreCase("AFC");
-						if (params != null && !params.isEmpty()) {
-							String val = params.get(0).getValue();
-							if (val != null && !val.isEmpty()) {
-								val = val.replace(',', '.').trim();
-								detail.setAfc(Double.parseDouble(val));
-							}
-						}
-					} catch (Exception ex) {
-						System.err.println("Error leyendo parametro AFC: " + ex.getMessage());
+				if (detail.getRegimenEffective() == Regimen.INDEFINIDO) {
+					if (detail.getAfc() == 0.0 && afcDefault > 0.0) {
+						detail.setAfc(afcDefault);
 					}
+				} else {
+					// PLAZO_FIJO: forzar AFC a 0
+					detail.setAfc(0.0);
 				}
 
 				/**
@@ -333,22 +355,9 @@ public class FileUtilsService {
 				if (calcularBonoAutomatico) {
 					System.out.println("=== INICIANDO CÁLCULO AUTOMÁTICO DE BONO ===");
 
-					// Obtener método de cálculo desde SystemParameter
-					String calculationMethod = "ALGEBRAIC"; // Default
-					try {
-						java.util.List<com.hp.contaSoft.hibernate.entities.SystemParameter> methodParams =
-							systemParameterService.findByNameIgnoreCase("BONO_CALCULATION_METHOD");
-						if (methodParams != null && !methodParams.isEmpty()) {
-							calculationMethod = methodParams.get(0).getValue();
-							System.out.println("Método de cálculo configurado: " + calculationMethod);
-						}
-					} catch (Exception ex) {
-						System.err.println("Error leyendo BONO_CALCULATION_METHOD, usando default: " + ex.getMessage());
-					}
-
 					// Calcular el bono usando el método seleccionado
 					long startTime = System.nanoTime();
-					double bonoCalculado = detail.calculateBonoFromAlcanceLiquido(alcanceLiquidoTarget, calculationMethod);
+					double bonoCalculado = detail.calculateBonoFromAlcanceLiquido(alcanceLiquidoTarget, bonoCalculationMethod);
 					long endTime = System.nanoTime();
 
 					double tiempoMs = (endTime - startTime) / 1_000_000.0;
@@ -360,6 +369,14 @@ public class FileUtilsService {
 
 					// Ahora calcular el total imponible con el nuevo bono
 					detail.calculateTotalImponible();
+
+					// Recalcular asignación familiar con la base imponible final (incluye bono calculado)
+					Double amountRecalculated = referenceDataCache.findAsigFamiliarAmount(detail.getTotalImponible());
+					System.out.println("amount recalculado=" + amountRecalculated);
+					if (amountRecalculated != null)
+						detail.calculateAsignacionFamiliar(amountRecalculated);
+					else
+						detail.calculateAsignacionFamiliar(0d);
 				}
 
 				/**
@@ -376,15 +393,25 @@ public class FileUtilsService {
 	        	detail.calculateRentaLiquidaImponible();
 	        	detail.calculateSeguroAccidentes();
 
+				/**
+				 * PASO 6b: Calcular aportes empleador
+				 */
+				detail.calculateAfcEmpleador();
+				if (afp != null) {
+					detail.calculateSis(afp.getSisTasa());
+				} else {
+					detail.calculateSis(1.49); // default SIS
+				}
+
 	        	/**
 	        	 * PASO 7: Calcular Impuesto IUT
 	        	 */
 	        	System.out.println("detail.getRentaLiquidaImponible()="+detail.getRentaLiquidaImponible());
-	        	Double iut = iUTRepository.getIUT(detail.getRentaLiquidaImponible());
+	        	com.hp.contaSoft.hibernate.entities.IUT iutTramo = referenceDataCache.findIutTramo(detail.getRentaLiquidaImponible());
 
-				if (iut != null) {
-					System.out.println("iut=" + iut);
-					detail.calculateValorUIT(iut);
+				if (iutTramo != null) {
+					System.out.println("iut factor=" + iutTramo.getFactor() + " rebaja=" + iutTramo.getQuantity());
+					detail.calculateValorUIT(iutTramo.getFactor(), iutTramo.getQuantity());
 				}
 
 				/**
@@ -393,8 +420,8 @@ public class FileUtilsService {
 				if (calcularBonoAutomatico) {
 					System.out.println("=== VERIFICACIÓN FINAL ===");
 
-					// Calcular alcance líquido REAL con el bono calculado
-					double alcanceLiquidoCalculado = detail.getTotalHaber() - detail.getTotalDctoPrevisional();
+					// Calcular alcance líquido REAL con el bono calculado (incluye AFC, igual que fórmula de bono)
+					double alcanceLiquidoCalculado = detail.getTotalHaber() - (detail.getTotalDctoPrevisional() + detail.getValorAFC());
 					double diferencia = Math.abs(alcanceLiquidoCalculado - alcanceLiquidoTarget);
 
 					System.out.println("ALCANCE_LIQUIDO Target (CSV): " + alcanceLiquidoTarget);
@@ -423,10 +450,6 @@ public class FileUtilsService {
 	        	//Persist PayBookDetail
 	        	PayBookDetails savedDetail = payBookDetailsRepository.save(detail);
 	        	System.out.println("Detalle guardado con ID: " + savedDetail.getId());
-
-	        	//Detach PayBookDetail
-	        	//Persist PayBookDetail
-	        	payBookDetailsRepository.save(detail);
 
 	        	//Detach PayBookDetail
 		        //payBookDetailsRepository.detach(detail);
@@ -483,7 +506,7 @@ public class FileUtilsService {
 			Taxpayer tax = pmInput.getTaxpayerInput();
 
 			//PayBookInstanceRepositoryImpl payBookInstanceRepositoryImpl = new PayBookInstanceRepositoryImpl();
-            PayBookInstance pbi = new PayBookInstance(pmInput.getFileMonthOutput(), "Test Upload", pmInput.getFileNameInput(), pmInput.getFileClientRutOutput(), tax, HPConstant.PAYROLL_FILE_STATUS);
+			PayBookInstance pbi = new PayBookInstance(pmInput.getFileMonthOutput(), pmInput.getFileYearOutput(), "Test Upload", pmInput.getFileNameInput(), pmInput.getFileClientRutOutput(), tax, HPConstant.PAYROLL_FILE_STATUS);
             pbi.setFamilyId(pmInput.getFamilyId());
 			
 			
@@ -624,22 +647,40 @@ public class FileUtilsService {
 			 *Validate CSV Extension
 			 */
 			String fileNames[] = fileName.split("\\.");
-			String extension = fileNames[1];
+			String extension = fileNames[fileNames.length - 1];
 			System.out.println("extension:"+extension);
-			if (!extension.equalsIgnoreCase(HPConstant.FILE_EXTENSION)) {
+			if (!HPConstant.VALID_FILE_EXTENSIONS.contains(extension.toLowerCase())) {
 				pmOutput.setValid(false);
-				//pm.setErrorMessage(getErrorMessage(01));
+				pmOutput.setErrorMessageOutput("Extension no soportada: " + extension + ". Use csv, xls o xlsx.");
 				return pmOutput;
 			}
+			pmOutput.setFileExtension(extension.toLowerCase());
 			
 			/**
 			 *Get & SET RUT & MONTH
 			 */
 			String fileNam[] = fileNames[0].split("_");
-	        System.out.println("RUT:"+fileNam[0]+ " Mes:"+fileNam[1]);
+			if (fileNam.length < 2 || fileNam.length > 3) {
+				pmOutput.setValid(false);
+				pmOutput.setErrorMessageOutput("Nombre de archivo inválido. Formatos soportados: rut_mes o rut_mes_ano.");
+				return pmOutput;
+			}
+
 	        String rut = fileNam[0];
 	        String month = fileNam[1];
+	        String year = null;
+	        if (fileNam.length == 3) {
+	        	year = fileNam[2];
+	        	if (year == null || !year.matches("\\d{4}")) {
+					pmOutput.setValid(false);
+					pmOutput.setErrorMessageOutput("Año inválido en nombre de archivo. Use formato YYYY (ej: 2026).");
+					return pmOutput;
+				}
+	        }
+
+	        System.out.println("RUT:"+rut+ " Mes:"+month + (year != null ? " Año:" + year : ""));
 	        pmOutput.setFileMonthOutput(month);
+	        pmOutput.setFileYearOutput(year);
 	        pmOutput.setFileClientRutOutput(rut);
 	        
 	        
@@ -693,28 +734,59 @@ public class FileUtilsService {
 		PipelineMessage pmOutput = pmInput;
 		
         try {
-        	boolean validheader = false;
-        	boolean validA = false;
-        	boolean validB = false;
-        	boolean validC = false;
         	InputStream is = pmOutput.getIsInput();
         	
         	System.out.println("=== VALIDATE HEADERS ===");
         	System.out.println("RUT del archivo: " + pmOutput.getFileClientRutOutput());
-        	
-        	Reader reader = new InputStreamReader(is);
-            CSVReader csvReader = new CSVReader(reader);
-			String[] nextRecord = csvReader.readNext();
-			
-			if(nextRecord == null || nextRecord.length == 0) {
-				System.err.println("ERROR: No se pudo leer la cabecera del archivo");
-				pmOutput.setValid(false);
-				pmOutput.setErrorMessageOutput("No se pudo leer la cabecera del CSV");
-				return pmOutput;
-			}
-			
-			System.out.println("Cabecera:"+nextRecord[0]);
-			String fileHeaders = nextRecord[0];
+
+        	String fileHeaders;
+        	Reader reader = null;
+        	CSVReader csvReader = null;
+
+        	switch (pmOutput.getFileExtension()) {
+        		case "xls":
+        		case "xlsx": {
+        			org.apache.poi.ss.usermodel.Workbook workbook = org.apache.poi.ss.usermodel.WorkbookFactory.create(is);
+        			org.apache.poi.ss.usermodel.Sheet sheet = workbook.getSheetAt(0);
+        			org.apache.poi.ss.usermodel.Row headerRow = sheet.getRow(0);
+        			if (headerRow == null) {
+        				pmOutput.setValid(false);
+        				pmOutput.setErrorMessageOutput("No se pudo leer la cabecera del archivo Excel");
+        				workbook.close();
+        				return pmOutput;
+        			}
+        			StringBuilder sb = new StringBuilder();
+        			for (int i = 0; i < headerRow.getLastCellNum(); i++) {
+        				org.apache.poi.ss.usermodel.Cell cell = headerRow.getCell(i);
+        				if (cell != null) {
+        					String val = cell.getStringCellValue().trim();
+        					if (!val.isEmpty()) {
+        						if (sb.length() > 0) sb.append(";");
+        						sb.append(val);
+        					}
+        				}
+        			}
+        			fileHeaders = sb.toString();
+        			System.out.println("Cabecera (Excel):" + fileHeaders);
+        			workbook.close();
+        			break;
+        		}
+        		case "csv":
+        		default: {
+        			reader = new InputStreamReader(is);
+        			csvReader = new CSVReader(reader);
+        			String[] nextRecord = csvReader.readNext();
+        			if (nextRecord == null || nextRecord.length == 0) {
+        				System.err.println("ERROR: No se pudo leer la cabecera del archivo");
+        				pmOutput.setValid(false);
+        				pmOutput.setErrorMessageOutput("No se pudo leer la cabecera del CSV");
+        				return pmOutput;
+        			}
+        			fileHeaders = nextRecord[0];
+        			System.out.println("Cabecera (CSV):" + fileHeaders);
+        			break;
+        		}
+        	}
 			
 			//List<String> fileHeaders = Arrays.asList(nextRecord[0]);
 			//fileHeaders.forEach(fileHeader -> System.out.println("Cabecera2;"+fileHeader));
@@ -742,40 +814,54 @@ public class FileUtilsService {
 				return pmOutput;
 			}
 			System.out.println("templateHeaders:"+templateHeaders);
-			/**
-			 * 2. compare fileHeaders and templateHeaders
-			           two ways to compare: a.- string vs string directly; lenght (equals doesnt work cause or the columns order)			
-									        b.- parse strings and compare every value
-			           						c.- validate required headers
-					If there is a mistmatch i must return which header we are missing
-			 */
-			
-			//a
-			
-			System.out.println("Largo FILE:"+ fileHeaders.length() + " Largo template"+templateHeaders.length());
-			if(fileHeaders.length() != templateHeaders.length())
-				{
-					pmOutput.setValid(false);
-					//pm.setErrorMessage(getErrorMessage(01));
-					return pmOutput;
-				}
-				
-			//b to be implement!
-			
+
+			// Comparar headers por nombre (independiente del orden)
 			String[] fileArrayHeaders = fileHeaders.split(";");
 			String[] templateArrayHeaders = templateHeaders.split(";");
-			
-			int fileLenght = fileArrayHeaders.length;
-			
-			reader.close();
-			csvReader.close();
+
+			Set<String> fileSet = new HashSet<>();
+			for (String h : fileArrayHeaders) {
+				fileSet.add(com.hp.contaSoft.utils.HeaderAliases.normalize(h.trim()));
+			}
+
+			Set<String> templateSet = new HashSet<>();
+			for (String h : templateArrayHeaders) {
+				templateSet.add(h.trim().toUpperCase());
+			}
+
+			// Columnas faltantes: estan en el template pero no en el archivo
+			Set<String> missing = new HashSet<>(templateSet);
+			missing.removeAll(fileSet);
+
+			if (!missing.isEmpty()) {
+				String missingStr = String.join(", ", missing);
+				System.err.println("ERROR: Columnas faltantes en el archivo: " + missingStr);
+				pmOutput.setValid(false);
+				pmOutput.setErrorMessageOutput("Columnas faltantes en el archivo: " + missingStr);
+				if (reader != null) reader.close();
+				if (csvReader != null) csvReader.close();
+				return pmOutput;
+			}
+
+			// Columnas extra: estan en el archivo pero no en el template (permitidas)
+			Set<String> extra = new HashSet<>(fileSet);
+			extra.removeAll(templateSet);
+			if (!extra.isEmpty()) {
+				System.out.println("WARNING: Columnas extra en el archivo (seran ignoradas): " + String.join(", ", extra));
+			}
+
+			System.out.println("Validacion de cabeceras OK. Columnas del archivo: " + fileSet);
+
+			if (reader != null) reader.close();
+			if (csvReader != null) csvReader.close();
 			return pmOutput;
-			
-		} catch (IOException e) {
+
+		} catch (Exception e) {
 			e.printStackTrace();
 			pmOutput.setValid(false);
+			pmOutput.setErrorMessageOutput("Error al validar cabeceras: " + e.getMessage());
 		}
-        
+
 		return pmOutput;}
 	
 	

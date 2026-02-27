@@ -8,6 +8,10 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
+import javax.persistence.Enumerated;
+import javax.persistence.EnumType;
+
+import com.hp.contaSoft.constant.Regimen;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -31,6 +35,10 @@ public class Taxpayer extends Base {
 	
 	@Column
 	private String familyId; //this field indicate which family created this record
+    
+	@Enumerated(EnumType.STRING)
+	@Column
+	private Regimen regimen;
 	
 	@JsonManagedReference
 	@OneToMany(mappedBy = "taxpayer", cascade=CascadeType.ALL)
@@ -81,7 +89,17 @@ public class Taxpayer extends Base {
 		subsidiary.setTaxpayer(this);
 		this.subsidiary.add(subsidiary);
 	}
-	public String getName() {
+	public Taxpayer(String name, String rut, Address address, String familyId, Subsidiary subsidiary) {
+        this.name = name;
+		this.rut = rut;
+		this.familyId = familyId;
+		address.setTaxpayer(this);
+		this.address.add(address);
+		subsidiary.setTaxpayer(this);
+		this.subsidiary.add(subsidiary);
+    }
+
+    public String getName() {
 		return name;
 	}
 
@@ -153,6 +171,14 @@ public class Taxpayer extends Base {
 
 	public void setFamilyId(String familyId) {
 		this.familyId = familyId;
+	}
+
+	public Regimen getRegimen() {
+		return regimen;
+	}
+
+	public void setRegimen(Regimen regimen) {
+		this.regimen = regimen;
 	}
 
 	

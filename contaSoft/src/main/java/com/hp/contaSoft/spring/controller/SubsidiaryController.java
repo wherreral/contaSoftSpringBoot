@@ -32,25 +32,43 @@ public class SubsidiaryController {
 	
 	@GetMapping
 	public String showSubsidiaries(Model model, org.springframework.security.core.Authentication authentication) {
-		// Obtener familyId del usuario autenticado
+		return loadSubsidiariesView(model, null, authentication);
+	}
+
+	@GetMapping("/cliente/{clientId}")
+	public String showSubsidiariesByClient(Model model,
+			@org.springframework.web.bind.annotation.PathVariable Long clientId,
+			org.springframework.security.core.Authentication authentication) {
+		return loadSubsidiariesView(model, clientId, authentication);
+	}
+
+	private String loadSubsidiariesView(Model model, Long clientId, org.springframework.security.core.Authentication authentication) {
 		String familyId = null;
 		if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof com.hp.contaSoft.custom.CurrentUser) {
 			com.hp.contaSoft.custom.CurrentUser currentUser = (com.hp.contaSoft.custom.CurrentUser) authentication.getPrincipal();
 			familyId = currentUser.getFamilId();
 		}
-		
+
 		List<Subsidiary> subsidiaries;
-		if (familyId != null) {
+		if (familyId != null && clientId != null) {
+			subsidiaries = subsidiaryRepository.findAllByFamilyIdAndTaxpayerId(familyId, clientId);
+		} else if (familyId != null) {
 			subsidiaries = subsidiaryRepository.findAllByFamilyId(familyId);
 		} else {
 			subsidiaries = (List<Subsidiary>) subsidiaryRepository.findAll();
 		}
-		
-		List<Taxpayer> taxpayers = (List<Taxpayer>) taxpayerRepository.findAll();
-		
+
+		List<Taxpayer> taxpayers;
+		if (familyId != null) {
+			taxpayers = taxpayerRepository.findByFamilyId(familyId);
+		} else {
+			taxpayers = (List<Taxpayer>) taxpayerRepository.findAll();
+		}
+
 		model.addAttribute("subsidiaries", subsidiaries);
 		model.addAttribute("taxpayers", taxpayers);
-		
+		model.addAttribute("clientId", clientId);
+
 		return "sucursales";
 	}
 	

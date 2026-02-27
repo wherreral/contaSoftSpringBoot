@@ -60,9 +60,19 @@ public class JWTAuthorizationFilter extends BasicAuthenticationFilter{
 	            return;
 	        }
 
-	        UsernamePasswordAuthenticationToken authentication = getAuthentication(header);
-
-	        SecurityContextHolder.getContext().setAuthentication(authentication);
+	        try {
+	            UsernamePasswordAuthenticationToken authentication = getAuthentication(header);
+	            SecurityContextHolder.getContext().setAuthentication(authentication);
+	        } catch (Exception e) {
+	            System.out.println("Error al validar token JWT: " + e.getMessage());
+	            SecurityContextHolder.clearContext();
+	            // Limpiar cookie JWT inválida para evitar loops de redirección
+	            Cookie invalidCookie = new Cookie("JWT_TOKEN", "");
+	            invalidCookie.setHttpOnly(true);
+	            invalidCookie.setPath("/");
+	            invalidCookie.setMaxAge(0);
+	            res.addCookie(invalidCookie);
+	        }
 	        chain.doFilter(req, res);
 	    }
 	    

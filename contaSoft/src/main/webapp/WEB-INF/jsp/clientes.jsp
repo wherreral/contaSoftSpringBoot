@@ -10,15 +10,11 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
+
+    <link rel="stylesheet" href="/css/theme.css">
+
     <style>
-        :root {
-            --primary-color: #0d6efd;
-            --sidebar-width: 280px;
-        }
-        
         body {
-            background-color: #f8f9fa;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
@@ -33,7 +29,7 @@
             left: -280px;
             width: var(--sidebar-width);
             height: 100vh;
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            background: var(--sidebar-bg);
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             transition: left 0.3s ease;
             z-index: 1050;
@@ -148,15 +144,15 @@
         }
         
         .client-table-card {
-            background: white;
+            background: var(--bg-card);
             border-radius: 12px;
             box-shadow: 0 2px 8px rgba(0,0,0,.08);
             overflow: hidden;
         }
         
         .table-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--table-header-bg);
+            color: var(--bg-card);
             padding: 1.5rem;
         }
         
@@ -167,8 +163,8 @@
         }
         
         .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--modal-header-bg);
+            color: var(--bg-card);
             padding: 0.75rem 1rem;
         }
         
@@ -190,7 +186,7 @@
         
         .form-label {
             font-weight: 500;
-            color: #495057;
+            color: var(--text-muted);
             font-size: 0.875rem;
             margin-bottom: 0.25rem;
         }
@@ -254,99 +250,11 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <button class="sidebar-close" id="sidebarClose">
-                <i class="bi bi-x-lg"></i>
-            </button>
-            <h4>
-                <i class="bi bi-calculator-fill me-2"></i>
-                ContaSoft
-            </h4>
-            <small>Sistema de Gestión</small>
-        </div>
-        
-        <div class="sidebar-menu">
-            <div class="sidebar-section-title">Gestión Principal</div>
-            
-            <a href="/" class="sidebar-menu-item">
-                <i class="bi bi-house-fill"></i>
-                Inicio
-            </a>
-            
-            <a href="/clientes" class="sidebar-menu-item active">
-                <i class="bi bi-people-fill"></i>
-                CRUD Clientes
-            </a>
-            
-            <a href="/sucursales" class="sidebar-menu-item">
-                <i class="bi bi-building"></i>
-                CRUD Sucursales
-            </a>
-            
-            <a href="/templates" class="sidebar-menu-item">
-                <i class="bi bi-file-earmark-text-fill"></i>
-                CRUD Templates
-            </a>
-            
-            <div class="sidebar-section-title mt-3">Reportes y Datos</div>
-            
-            <a href="/reportes" class="sidebar-menu-item">
-                <i class="bi bi-graph-up"></i>
-                Reportes
-            </a>
-            
-            <a href="/importar" class="sidebar-menu-item">
-                <i class="bi bi-upload"></i>
-                Importar Datos
-            </a>
-            
-            <div class="sidebar-section-title mt-3">Sistema</div>
-            
-            <a href="/configuracion" class="sidebar-menu-item">
-                <i class="bi bi-gear-fill"></i>
-                Configuración
-            </a>
-            
-            <a href="/ayuda" class="sidebar-menu-item">
-                <i class="bi bi-question-circle-fill"></i>
-                Ayuda
-            </a>
-        </div>
-    </div>
-    
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <!-- Sidebar (cargado por sidebar.js) -->
+    <div id="sidebar-container"></div>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-        <div class="container-fluid">
-            <button class="navbar-menu-btn" id="navbarMenuBtn">
-                <i class="bi bi-list"></i>
-            </button>
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-calculator-fill me-2"></i>
-                <strong>ContaSoft</strong>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="bi bi-house-fill me-1"></i> Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/clientes"><i class="bi bi-people-fill me-1"></i> Clientes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/configuracion"><i class="bi bi-gear-fill me-1"></i> Configuración</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <!-- Navbar (cargado por navbar.js) -->
+    <div id="navbar-container"></div>
 
     <div class="container-fluid px-4">
         <!-- Page Header -->
@@ -405,6 +313,7 @@
                             <th>Razón Social</th>
                             <th>RUT</th>
                             <th>Dirección</th>
+                            <th>Sucursales</th>
                             <th>Representante Legal</th>
                             <th class="text-center">Acciones</th>
                         </tr>
@@ -480,7 +389,9 @@
                             </div>
                             <div class="col-md-6">
                                 <label for="comuna" class="form-label required-field">Comuna</label>
-                                <input type="text" class="form-control" id="comuna" required>
+                                <select class="form-select" id="comuna" required>
+                                    <option value="">Seleccione primero una regi&oacute;n...</option>
+                                </select>
                             </div>
                         </div>
                         
@@ -530,74 +441,71 @@
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
+    <!-- Módulos compartidos -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/navbar.js"></script>
+    <script>
+        loadNavbar('clientes');
+        loadSidebar('clientes');
+    </script>
+
     <!-- Custom JavaScript -->
     <script>
-        // Sidebar functionality
-        const sidebar = document.getElementById('sidebar');
-        const navbarMenuBtn = document.getElementById('navbarMenuBtn');
-        const sidebarClose = document.getElementById('sidebarClose');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        
-        function openSidebar() {
-            sidebar.classList.add('active');
-            sidebarOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeSidebar() {
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        
-        navbarMenuBtn.addEventListener('click', openSidebar);
-        sidebarClose.addEventListener('click', closeSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
-        
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && sidebar.classList.contains('active')) {
-                closeSidebar();
-            }
-        });
-        
         // Cliente Management
         const API_BASE_URL = 'http://localhost:8080/api/ui/clientes';
         let clienteModal;
         let isEditMode = false;
         let currentClienteId = null;
-        
-        // JWT Token Interceptor - Add Authorization header to all fetch requests
-        (function() {
-            const originalFetch = window.fetch;
-            window.fetch = function(url, options = {}) {
-                const token = localStorage.getItem('jwtToken');
-                if (token) {
-                    options.headers = options.headers || {};
-                    if (options.headers instanceof Headers) {
-                        options.headers.set('Authorization', 'Bearer ' + token);
-                    } else {
-                        options.headers['Authorization'] = 'Bearer ' + token;
-                    }
+
+        // Comunas por Región (Chile)
+        const comunasPorRegion = {
+            "Regi\u00f3n de Arica y Parinacota": ["Arica","Camarones","General Lagos","Putre"],
+            "Regi\u00f3n de Tarapac\u00e1": ["Alto Hospicio","Cami\u00f1a","Colchane","Huara","Iquique","Pica","Pozo Almonte"],
+            "Regi\u00f3n de Antofagasta": ["Antofagasta","Calama","Mar\u00eda Elena","Mejillones","Ollag\u00fce","San Pedro de Atacama","Sierra Gorda","Taltal","Tocopilla"],
+            "Regi\u00f3n de Atacama": ["Alto del Carmen","Caldera","Cha\u00f1aral","Copiap\u00f3","Diego de Almagro","Freirina","Huasco","Tierra Amarilla","Vallenar"],
+            "Regi\u00f3n de Coquimbo": ["Andacollo","Canela","Combarbal\u00e1","Coquimbo","Illapel","La Higuera","La Serena","Los Vilos","Monte Patria","Ovalle","Paiguano","Punitaqui","R\u00edo Hurtado","Salamanca","Vicu\u00f1a"],
+            "Regi\u00f3n de Valpara\u00edso": ["Algarrobo","Cabildo","Calle Larga","Cartagena","Casablanca","Catemu","Conc\u00f3n","El Quisco","El Tabo","Hijuelas","Isla de Pascua","Juan Fern\u00e1ndez","La Cruz","La Ligua","Limache","Llay-Llay","Los Andes","Nogales","Olmu\u00e9","Panquehue","Papudo","Petorca","Puchuncav\u00ed","Putaendo","Quillota","Quilpu\u00e9","Quintero","Rinconada","San Antonio","San Esteban","San Felipe","Santa Mar\u00eda","Santo Domingo","Valpara\u00edso","Villa Alemana","Vi\u00f1a del Mar","Zapallar"],
+            "Regi\u00f3n Metropolitana": ["Alhue","Buin","Calera de Tango","Cerrillos","Cerro Navia","Colina","Conchal\u00ed","Curacav\u00ed","El Bosque","El Monte","Estaci\u00f3n Central","Huechuraba","Independencia","Isla de Maipo","La Cisterna","La Florida","La Granja","La Pintana","La Reina","Lampa","Las Condes","Lo Barnechea","Lo Espejo","Lo Prado","Macul","Maip\u00fa","Mar\u00eda Pinto","Melipilla","\u00d1u\u00f1oa","Padre Hurtado","Paine","Pedro Aguirre Cerda","Pe\u00f1aflor","Pe\u00f1alol\u00e9n","Pirque","Providencia","Pudahuel","Puente Alto","Quilicura","Quinta Normal","Recoleta","Renca","San Bernardo","San Joaqu\u00edn","San Jos\u00e9 de Maipo","San Miguel","San Pedro","San Ram\u00f3n","Santiago","Talagante","Tiltil","Vitacura"],
+            "Regi\u00f3n de O'Higgins": ["Chimbarongo","Codegua","Coinco","Coltauco","Do\u00f1ihue","Graneros","La Estrella","Las Cabras","Litueche","Lolol","Machal\u00ed","Malloa","Marchihue","Mostazal","Nancagua","Navidad","Olivar","Palmilla","Paredones","Peralillo","Peumo","Pichidegua","Pichilemu","Placilla","Pumanque","Quinta de Tilcoco","Rancagua","Rengo","Requ\u00ednoa","San Fernando","San Vicente","Santa Cruz"],
+            "Regi\u00f3n del Maule": ["Cauquenes","Chanco","Colb\u00fan","Constituci\u00f3n","Curepto","Curic\u00f3","Empedrado","Hualañ\u00e9","Licant\u00e9n","Linares","Longav\u00ed","Maule","Molina","Parral","Pelarco","Pelluhue","Pencahue","Rauco","Retiro","R\u00edo Claro","Romeral","Sagrada Familia","San Clemente","San Javier","San Rafael","Talca","Teno","Vichuqu\u00e9n","Villa Alegre","Yerbas Buenas"],
+            "Regi\u00f3n de \u00d1uble": ["Bulnes","Chill\u00e1n","Chill\u00e1n Viejo","Cobquecura","Coelemu","Coihueco","El Carmen","Ninhue","\u00d1iqu\u00e9n","Pemuco","Pinto","Portezuelo","Quill\u00f3n","Quirihue","R\u00e1nquil","San Carlos","San Fabi\u00e1n","San Ignacio","San Nicol\u00e1s","Treguaco","Yungay"],
+            "Regi\u00f3n del Biob\u00edo": ["Alto Biob\u00edo","Antuco","Arauco","Cabrero","Ca\u00f1ete","Chiguayante","Concepci\u00f3n","Contulmo","Coronel","Curanilahue","Florida","Hualp\u00e9n","Hualqui","Laja","Lebu","Los \u00c1lamos","Los \u00c1ngeles","Lota","Mulch\u00e9n","Nacimiento","Negrete","Penco","Quilaco","Quilleco","San Pedro de la Paz","San Rosendo","Santa B\u00e1rbara","Santa Juana","Talcahuano","Tir\u00faa","Tom\u00e9","Tucapel","Yumbel"],
+            "Regi\u00f3n de La Araucan\u00eda": ["Angol","Carahue","Cholchol","Collipulli","Cunco","Curacaut\u00edn","Curarrehue","Ercilla","Freire","Galvarino","Gorbea","Lautaro","Loncoche","Lonquimay","Los Sauces","Lumaco","Melipeuco","Nueva Imperial","Padre Las Casas","Perquenco","Pitrufqu\u00e9n","Puc\u00f3n","Pur\u00e9n","Renaico","Saavedra","Temuco","Teodoro Schmidt","Tolt\u00e9n","Traigu\u00e9n","Victoria","Vilc\u00fan","Villarrica"],
+            "Regi\u00f3n de Los R\u00edos": ["Corral","Futrono","La Uni\u00f3n","Lago Ranco","Lanco","Los Lagos","M\u00e1fil","Mariquina","Paillaco","Panguipulli","R\u00edo Bueno","Valdivia"],
+            "Regi\u00f3n de Los Lagos": ["Ancud","Calbuco","Castro","Chait\u00e9n","Cocham\u00f3","Curaco de V\u00e9lez","Dalcahue","Fresia","Frutillar","Futaleuf\u00fa","Hualaihu\u00e9","Llanquihue","Los Muermos","Maull\u00edn","Osorno","Palena","Puerto Montt","Puerto Octay","Puerto Varas","Puqueld\u00f3n","Purranque","Puyehue","Queil\u00e9n","Quell\u00f3n","Quemchi","Quinchao","R\u00edo Negro","San Juan de la Costa","San Pablo"],
+            "Regi\u00f3n de Ays\u00e9n": ["Ays\u00e9n","Chile Chico","Cisnes","Cochrane","Coihaique","Guaitecas","Lago Verde","O'Higgins","R\u00edo Ib\u00e1\u00f1ez","Tortel"],
+            "Regi\u00f3n de Magallanes": ["Ant\u00e1rtica","Cabo de Hornos","Laguna Blanca","Natales","Porvenir","Primavera","Punta Arenas","R\u00edo Verde","San Gregorio","Timaukel","Torres del Paine"]
+        };
+
+        function cargarComunas(regionSeleccionada, comunaPreseleccionada) {
+            var comunaSelect = document.getElementById('comuna');
+            comunaSelect.innerHTML = '';
+            if (!regionSeleccionada || !comunasPorRegion[regionSeleccionada]) {
+                comunaSelect.innerHTML = '<option value="">Seleccione primero una regi\u00f3n...</option>';
+                return;
+            }
+            comunaSelect.innerHTML = '<option value="">Seleccionar comuna...</option>';
+            var comunas = comunasPorRegion[regionSeleccionada];
+            for (var i = 0; i < comunas.length; i++) {
+                var opt = document.createElement('option');
+                opt.value = comunas[i];
+                opt.textContent = comunas[i];
+                if (comunaPreseleccionada && comunas[i] === comunaPreseleccionada) {
+                    opt.selected = true;
                 }
-                return originalFetch(url, options).then(response => {
-                    if (response.status === 401 || response.status === 403) {
-                        console.warn('Token expirado o inválido, redirigiendo a login...');
-                        fetch('/api/auth/logout', { method: 'POST' })
-                        .finally(function() {
-                            localStorage.removeItem('jwtToken');
-                            localStorage.removeItem('username');
-                            localStorage.removeItem('familyId');
-                            window.location.replace('/login');
-                        });
-                    }
-                    return response;
-                });
-            };
-        })();
-        
+                comunaSelect.appendChild(opt);
+            }
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             clienteModal = new bootstrap.Modal(document.getElementById('clienteModal'));
-            
+
+            // Evento cambio de región -> cargar comunas
+            document.getElementById('region').addEventListener('change', function() {
+                cargarComunas(this.value, null);
+            });
+
             // Check if there's a client ID in the URL parameter
             const urlParams = new URLSearchParams(window.location.search);
             const clientId = urlParams.get('id');
@@ -724,12 +632,22 @@
                 }
                 var representante = cliente.lastname || 'No especificado';
 
+                var sucursales = '';
+                if (cliente.subsidiary && Array.isArray(cliente.subsidiary) && cliente.subsidiary.length > 0) {
+                    sucursales = cliente.subsidiary.map(function(s) {
+                        return '<a href="/sucursales/cliente/' + id + '" class="badge bg-info text-dark me-1 text-decoration-none" style="cursor:pointer">' + (s.name || s.subsidiaryId || '') + '</a>';
+                    }).join('');
+                } else {
+                    sucursales = '<span class="text-muted">Sin sucursales</span>';
+                }
+
                 var tr = document.createElement('tr');
                 tr.innerHTML =
                     '<td>' + id + '</td>' +
                     '<td><strong>' + name + '</strong></td>' +
                     '<td>' + rut + '</td>' +
                     '<td>' + direccion + '</td>' +
+                    '<td>' + sucursales + '</td>' +
                     '<td>' + representante + '</td>' +
                     '<td class="text-center">' +
                         '<button class="btn btn-sm btn-primary btn-action" onclick="editarCliente(' + id + ')">' +
@@ -749,6 +667,7 @@
             document.getElementById('clienteModalLabel').innerHTML = '<i class="bi bi-person-plus-fill me-2"></i>Nuevo Cliente';
             document.getElementById('clienteForm').reset();
             document.getElementById('clienteId').value = '';
+            cargarComunas(null, null);
             clienteModal.show();
         }
         
@@ -771,7 +690,7 @@
                         if (cliente.address && cliente.address.length > 0) {
                             const addr = cliente.address[0];
                             document.getElementById('region').value = addr.province || '';
-                            document.getElementById('comuna').value = addr.comuna || '';
+                            cargarComunas(addr.province || '', addr.comuna || '');
                             document.getElementById('calle').value = addr.name || '';
                             document.getElementById('numero').value = addr.number || '';
                         }

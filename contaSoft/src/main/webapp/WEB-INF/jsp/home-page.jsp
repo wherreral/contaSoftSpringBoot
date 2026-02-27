@@ -500,109 +500,11 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <button class="sidebar-close" id="sidebarClose">
-                <i class="bi bi-x-lg"></i>
-            </button>
-            <h4>
-                <i class="bi bi-calculator-fill me-2"></i>
-                ContaSoft
-            </h4>
-            <small>Sistema de Gestión</small>
-        </div>
-        
-        <div class="sidebar-menu">
-            <div class="sidebar-section-title">Gestión Principal</div>
-            
-            <a href="/" class="sidebar-menu-item">
-                <i class="bi bi-house-fill"></i>
-                Inicio
-            </a>
-            
-            <a href="/clientes" class="sidebar-menu-item">
-                <i class="bi bi-people-fill"></i>
-                CRUD Clientes
-            </a>
-            
-            <a href="/sucursales" class="sidebar-menu-item">
-                <i class="bi bi-building"></i>
-                CRUD Sucursales
-            </a>
-            
-            <a href="/templates" class="sidebar-menu-item">
-                <i class="bi bi-file-earmark-text-fill"></i>
-                CRUD Templates
-            </a>
-            
-            <div class="sidebar-section-title mt-3">Reportes y Datos</div>
-            
-            <a href="/reportes" class="sidebar-menu-item">
-                <i class="bi bi-graph-up"></i>
-                Reportes
-            </a>
-            
-            <a href="/importar" class="sidebar-menu-item">
-                <i class="bi bi-upload"></i>
-                Importar Datos
-            </a>
-            
-            <div class="sidebar-section-title mt-3">Sistema</div>
-            
-            <a href="/configuracion" class="sidebar-menu-item">
-                <i class="bi bi-gear-fill"></i>
-                Configuración
-            </a>
-            
-            <a href="/ayuda" class="sidebar-menu-item">
-                <i class="bi bi-question-circle-fill"></i>
-                Ayuda
-            </a>
-        </div>
-    </div>
-    
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
-    <!-- Floating Sidebar Toggle Button -->
-    <button class="sidebar-toggle" id="sidebarToggle">
-        <i class="bi bi-list"></i>
-    </button>
+    <!-- Sidebar (cargado por sidebar.js) -->
+    <div id="sidebar-container"></div>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-        <div class="container-fluid">
-            <button class="navbar-menu-btn" id="navbarMenuBtn">
-                <i class="bi bi-list"></i>
-            </button>
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-calculator-fill me-2"></i>
-                <strong>ContaSoft</strong>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/"><i class="bi bi-house-fill me-1"></i> Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-file-earmark-text me-1"></i> Reportes</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-gear-fill me-1"></i> Configuración</a>
-                    </li>
-                    <li class="nav-item">
-                        <button class="theme-toggle" id="themeToggle" title="Cambiar tema">
-                            <i class="bi bi-moon-fill" id="themeIcon"></i>
-                        </button>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <!-- Navbar (cargado por navbar.js) -->
+    <div id="navbar-container"></div>
 
     <div class="container-fluid px-4">
         <!-- Header Section with Upload Widget -->
@@ -617,7 +519,7 @@
             <div class="col-lg-5 col-md-4">
                 <!-- Compact Upload Widget -->
                 <div class="upload-widget">
-                    <input type="file" id="fileInput" accept=".csv,.xls,.xlsx,.xlsm" style="display: none;" onchange="handleFileSelect(event)">
+                    <input type="file" id="fileInput" accept=".csv,.xls,.xlsx,.xlsm" style="display: none;">
                     
                     <!-- Drop Zone Compact -->
                     <div class="drop-zone-compact" id="dropZone" onclick="document.getElementById('fileInput').click()">
@@ -828,99 +730,13 @@
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
-    <!-- JWT Token Interceptor & Authentication -->
+    <!-- Módulos compartidos -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/navbar.js"></script>
     <script>
-        // JWT Token Management and Authentication
-        (function() {
-            // Helper: limpiar sesión llamando al servidor para borrar cookie HttpOnly
-            function clearSessionAndRedirect() {
-                localStorage.removeItem('jwtToken');
-                localStorage.removeItem('username');
-                localStorage.removeItem('familyId');
-                // Llamar al servidor para borrar la cookie HttpOnly
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', '/api/auth/logout', false); // síncrono para que se ejecute antes del redirect
-                try { xhr.send(); } catch(e) {}
-                window.location.replace('/login');
-            }
-
-            // Check if user has a valid (non-expired) token
-            const token = localStorage.getItem('jwtToken');
-            if (!token) {
-                clearSessionAndRedirect();
-                return;
-            }
-            try {
-                const payload = JSON.parse(atob(token.split('.')[1]));
-                const exp = payload.exp * 1000;
-                if (exp <= Date.now()) {
-                    clearSessionAndRedirect();
-                    return;
-                }
-            } catch(e) {
-                clearSessionAndRedirect();
-                return;
-            }
-            
-            // Setup fetch to include JWT token in all requests
-            const originalFetch = window.fetch;
-            window.fetch = function(url, options = {}) {
-                const token = localStorage.getItem('jwtToken');
-                if (token) {
-                    options.headers = options.headers || {};
-                    options.headers['Authorization'] = 'Bearer ' + token;
-                }
-                
-                return originalFetch(url, options).then(response => {
-                    // Handle 401 Unauthorized responses
-                    if (response.status === 401 || response.status === 403) {
-                        // No usar fetch aquí (estamos dentro del interceptor), usar XMLHttpRequest
-                        localStorage.removeItem('jwtToken');
-                        localStorage.removeItem('username');
-                        localStorage.removeItem('familyId');
-                        var xhr = new XMLHttpRequest();
-                        xhr.open('POST', '/api/auth/logout', false);
-                        try { xhr.send(); } catch(e) {}
-                        window.location.replace('/login');
-                    }
-                    return response;
-                });
-            };
-            
-            // Add logout functionality
-            window.logout = function() {
-                if (confirm('¿Está seguro que desea cerrar sesión?')) {
-                    fetch('/api/auth/logout', { method: 'POST' })
-                    .finally(function() {
-                        localStorage.removeItem('jwtToken');
-                        localStorage.removeItem('username');
-                        localStorage.removeItem('familyId');
-                        window.location.replace('/login');
-                    });
-                }
-            };
-            
-            // Display username in navbar
-            const username = localStorage.getItem('username');
-            if (username) {
-                // Add user info to navbar
-                const navbar = document.querySelector('.navbar .container-fluid');
-                if (navbar && !document.getElementById('userInfo')) {
-                    const userInfo = document.createElement('div');
-                    userInfo.id = 'userInfo';
-                    userInfo.className = 'd-flex align-items-center ms-auto';
-                    userInfo.innerHTML = `
-                        <span class="text-white me-3">
-                            <i class="bi bi-person-circle"></i> ${username}
-                        </span>
-                        <button class="btn btn-sm btn-outline-light" onclick="logout()">
-                            <i class="bi bi-box-arrow-right"></i> Salir
-                        </button>
-                    `;
-                    navbar.appendChild(userInfo);
-                }
-            }
-        })();
+        loadNavbar('inicio');
+        loadSidebar('inicio');
     </script>
     
     <!-- Custom JavaScript -->
@@ -1001,37 +817,6 @@
             container.innerHTML = html;
         }
         
-        // Sidebar functionality
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const navbarMenuBtn = document.getElementById('navbarMenuBtn');
-        const sidebarClose = document.getElementById('sidebarClose');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        
-        function openSidebar() {
-            sidebar.classList.add('active');
-            sidebarOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeSidebar() {
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        
-        sidebarToggle.addEventListener('click', openSidebar);
-        navbarMenuBtn.addEventListener('click', openSidebar);
-        sidebarClose.addEventListener('click', closeSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
-        
-        // Close sidebar on ESC key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && sidebar.classList.contains('active')) {
-                closeSidebar();
-            }
-        });
-        
         // Search functionality
         document.getElementById('searchInput').addEventListener('input', function(e) {
             const searchTerm = e.target.value.toLowerCase();
@@ -1078,6 +863,13 @@
         const dropZone = document.getElementById('dropZone');
         const fileInput = document.getElementById('fileInput');
         const filePreview = document.getElementById('filePreview');
+
+        fileInput.addEventListener('change', function(event) {
+            const files = event.target.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
         
         // Extraer RUT del nombre del archivo
         function extractRutFromFilename(filename) {
@@ -1134,14 +926,6 @@
                 handleFile(files[0]);
             }
         });
-        
-        // Handle file selection from input
-        function handleFileSelect(event) {
-            const files = event.target.files;
-            if (files.length > 0) {
-                handleFile(files[0]);
-            }
-        }
         
         // Process selected file
         function handleFile(file) {
@@ -1260,32 +1044,6 @@
             }
         }
         
-        // ===== THEME TOGGLE FUNCTIONALITY =====
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-        const html = document.documentElement;
-        
-        // Check for saved theme preference or default to light
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        html.setAttribute('data-theme', savedTheme);
-        updateThemeIcon(savedTheme);
-        
-        function updateThemeIcon(theme) {
-            if (theme === 'dark') {
-                themeIcon.className = 'bi bi-sun-fill';
-            } else {
-                themeIcon.className = 'bi bi-moon-fill';
-            }
-        }
-        
-        themeToggle.addEventListener('click', function() {
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
     </script>
 </body>
 </html>

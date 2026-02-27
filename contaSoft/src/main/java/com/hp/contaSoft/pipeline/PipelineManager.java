@@ -192,9 +192,7 @@ public class PipelineManager {
 				System.out.println("Method:startChain- i!=0");
 				if(i < pcl.size())
 					System.out.println(pcl.get(i).getName());
-				
-				TimeUnit.SECONDS.sleep(1);
-				
+
 				if(containsLink(pcl, classNameLink)) 
 				{
 					System.out.println("Encontro Link");
@@ -237,8 +235,7 @@ public class PipelineManager {
 		}
 		
 		System.out.println("Method:FIN startChain- ");
-		TimeUnit.SECONDS.sleep(1);
-		
+
 		return pm;
 	}
 	

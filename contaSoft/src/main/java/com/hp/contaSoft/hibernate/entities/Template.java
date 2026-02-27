@@ -18,8 +18,11 @@ public class Template extends Base{
 
 	@JsonBackReference
 	@ManyToOne
-	@JoinColumn(name = "taxpayer_id", nullable = false)
+	@JoinColumn(name = "taxpayer_id", nullable = true)
 	private Taxpayer taxpayer;
+
+	@Column(name = "default_template")
+	private boolean defaultTemplate = false;
 	
 	@Column(nullable = false, length = 100)
 	private String name;

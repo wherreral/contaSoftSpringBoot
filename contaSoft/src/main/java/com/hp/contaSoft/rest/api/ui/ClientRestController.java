@@ -16,8 +16,11 @@ import org.springframework.web.bind.annotation.*;
 
 import com.hp.contaSoft.custom.CurrentUser;
 import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerRepository;
+import com.hp.contaSoft.hibernate.dao.repositories.TemplateRepository;
 import com.hp.contaSoft.hibernate.entities.Address;
 import com.hp.contaSoft.hibernate.entities.Taxpayer;
+import com.hp.contaSoft.hibernate.entities.Template;
+import com.hp.contaSoft.constant.Regimen;
 
 @RestController
 @RequestMapping(value = "/api/ui/clientes", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -28,6 +31,9 @@ public class ClientRestController {
 
     @Autowired
     private TaxpayerRepository taxpayerRepository;
+
+    @Autowired
+    private TemplateRepository templateRepository;
     
     public ClientRestController() {
         logger.info("=== ClientRestController INITIALIZED ===");
@@ -178,6 +184,17 @@ public class ClientRestController {
             taxpayer.setName(clientDTO.getRazonSocial());
             taxpayer.setRut(clientDTO.getRutCliente());
             taxpayer.setFamilyId(familyId); // ASIGNAR FAMILY ID
+            // Asignar regimen (si viene)
+            String dtoRegimen = clientDTO.getRegimen();
+            Regimen regimenEnum = Regimen.INDEFINIDO;
+            if (dtoRegimen != null) {
+                try {
+                    regimenEnum = Regimen.valueOf(dtoRegimen.trim().toUpperCase());
+                } catch (IllegalArgumentException ex) {
+                    regimenEnum = Regimen.INDEFINIDO;
+                }
+            }
+            taxpayer.setRegimen(regimenEnum);
             
             // Si hay datos del representante legal
             if (clientDTO.getNombreRepresentante() != null && clientDTO.getRutRepresentante() != null) {
@@ -197,7 +214,17 @@ public class ClientRestController {
             
             // Guardar el cliente
             Taxpayer savedTaxpayer = taxpayerRepository.save(taxpayer);
-            
+
+            // Crear template default para el nuevo cliente
+            String defaultValue = "{\"RUT\":\"RUT\",\"CENTRO_COSTO\":\"CENTRO_COSTO\",\"SUELDO_BASE\":\"SUELDO_BASE\"," +
+                "\"DT\":\"DT\",\"PREVISION\":\"PREVISION\",\"SALUD\":\"SALUD\",\"SALUD_PORCENTAJE\":\"SALUD_PORCENTAJE\"}";
+            Template defaultTemplate = new Template("Default", defaultValue, "Template por defecto", false);
+            defaultTemplate.setTaxpayer(savedTaxpayer);
+            defaultTemplate.setDefaultTemplate(true);
+            defaultTemplate.setFamily(familyId);
+            templateRepository.save(defaultTemplate);
+            logger.info("Template default creado para cliente: {}", savedTaxpayer.getName());
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Cliente creado exitosamente");
@@ -250,6 +277,15 @@ public class ClientRestController {
             // Actualizar datos del cliente
             taxpayer.setName(clientDTO.getRazonSocial());
             taxpayer.setRut(clientDTO.getRutCliente());
+            // Actualizar regimen si se proporcionó
+            if (clientDTO.getRegimen() != null) {
+                try {
+                    Regimen newRegimen = Regimen.valueOf(clientDTO.getRegimen().trim().toUpperCase());
+                    taxpayer.setRegimen(newRegimen);
+                } catch (IllegalArgumentException ex) {
+                    taxpayer.setRegimen(Regimen.INDEFINIDO);
+                }
+            }
             
             // Actualizar datos del representante legal
             if (clientDTO.getNombreRepresentante() != null && clientDTO.getRutRepresentante() != null) {
@@ -301,6 +337,7 @@ public class ClientRestController {
     public static class ClientDTO {
         private String razonSocial;
         private String rutCliente;
+        private String regimen;
         private DireccionDTO direccion;
         private String rutRepresentante;
         private String nombreRepresentante;
@@ -344,6 +381,14 @@ public class ClientRestController {
 
         public void setNombreRepresentante(String nombreRepresentante) {
             this.nombreRepresentante = nombreRepresentante;
+        }
+
+        public String getRegimen() {
+            return regimen;
+        }
+
+        public void setRegimen(String regimen) {
+            this.regimen = regimen;
         }
     }
 

@@ -194,39 +194,18 @@
             
             <form id="registerForm">
                 <div class="mb-3">
-                    <label for="name" class="form-label">Nombre Completo</label>
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="bi bi-person-badge"></i>
-                        </span>
-                        <input type="text" class="form-control" id="name" 
-                               placeholder="Juan Pérez" required>
-                    </div>
-                </div>
-                
-                <div class="mb-3">
                     <label for="username" class="form-label">Usuario</label>
                     <div class="input-group">
                         <span class="input-group-text">
                             <i class="bi bi-person"></i>
                         </span>
-                        <input type="text" class="form-control" id="username" 
-                               placeholder="usuario123" required minlength="4">
+                        <input type="text" class="form-control" id="username"
+                               placeholder="usuario@ejemplo.com" required minlength="4" maxlength="100"
+                               autocomplete="username">
                     </div>
-                    <small class="text-muted">Mínimo 4 caracteres</small>
+                    <small class="text-muted">Mínimo 4 caracteres. Letras, números, @, ., - y _</small>
                 </div>
-                
-                <div class="mb-3">
-                    <label for="phone" class="form-label">Teléfono</label>
-                    <div class="input-group">
-                        <span class="input-group-text">
-                            <i class="bi bi-telephone"></i>
-                        </span>
-                        <input type="tel" class="form-control" id="phone" 
-                               placeholder="+56 9 1234 5678">
-                    </div>
-                </div>
-                
+
                 <div class="mb-3">
                     <label for="password" class="form-label">Contraseña</label>
                     <div class="input-group">
@@ -304,75 +283,87 @@
 
         document.getElementById('registerForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            
-            const name = document.getElementById('name').value;
-            const username = document.getElementById('username').value;
-            const phone = document.getElementById('phone').value;
+
+            const username = document.getElementById('username').value.trim();
             const password = document.getElementById('password').value;
             const confirmPassword = document.getElementById('confirmPassword').value;
             const registerBtn = document.getElementById('registerBtn');
             const btnText = document.getElementById('btnText');
             const btnSpinner = document.getElementById('btnSpinner');
             const alertContainer = document.getElementById('alertContainer');
-            
+
             alertContainer.innerHTML = '';
-            
+
             if (password !== confirmPassword) {
                 alertContainer.innerHTML = `
                     <div class="alert alert-danger" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill"></i> 
+                        <i class="bi bi-exclamation-triangle-fill"></i>
                         Las contraseñas no coinciden
                     </div>
                 `;
                 return;
             }
-            
+
             registerBtn.disabled = true;
             btnText.classList.add('d-none');
             btnSpinner.classList.remove('d-none');
-            
+
             try {
                 const response = await fetch('/public/api/sign-up', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json',
                     },
                     body: JSON.stringify({
-                        name: name,
                         username: username,
-                        phone: phone,
                         password: password
                     })
                 });
-                
-                const success = await response.json();
-                
-                if (success) {
+
+                const result = await response.json();
+
+                if (result.success) {
                     alertContainer.innerHTML = `
                         <div class="alert alert-success" role="alert">
-                            <i class="bi bi-check-circle-fill"></i> 
-                            ¡Cuenta creada exitosamente! Redirigiendo al login...
+                            <i class="bi bi-check-circle-fill"></i>
+                            ¡Cuenta creada exitosamente! Iniciando sesión...
                         </div>
                     `;
-                    
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 2000);
-                    
+
+                    // Login automático
+                    const loginResponse = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ username: username, password: password })
+                    });
+                    const authHeader = loginResponse.headers.get('Authorization');
+                    if (loginResponse.ok && authHeader) {
+                        const token = authHeader.replace('Bearer ', '');
+                        localStorage.setItem('jwtToken', token);
+                        const payload = JSON.parse(atob(token.split('.')[1]));
+                        localStorage.setItem('username', payload.name);
+                        localStorage.setItem('familyId', payload.family);
+                        const maxAge = Math.floor((payload.exp * 1000 - Date.now()) / 1000);
+                        document.cookie = 'JWT_TOKEN=' + token + '; path=/; max-age=' + maxAge;
+                        setTimeout(function() { window.location.href = '/'; }, 1000);
+                    } else {
+                        setTimeout(function() { window.location.href = '/login'; }, 2000);
+                    }
+
                 } else {
-                    throw new Error('El usuario ya existe');
+                    throw new Error(result.message || 'Error al crear la cuenta');
                 }
-                
+
             } catch (error) {
                 console.error('Error during registration:', error);
-                
-                alertContainer.innerHTML = `
-                    <div class="alert alert-danger" role="alert">
-                        <i class="bi bi-exclamation-triangle-fill"></i> 
-                        Error: El usuario ya existe o hubo un problema al crear la cuenta
-                    </div>
-                `;
-                
+
+                alertContainer.innerHTML =
+                    '<div class="alert alert-danger" role="alert">' +
+                    '<i class="bi bi-exclamation-triangle-fill"></i> ' +
+                    error.message +
+                    '</div>';
+
                 registerBtn.disabled = false;
                 btnText.classList.remove('d-none');
                 btnSpinner.classList.add('d-none');

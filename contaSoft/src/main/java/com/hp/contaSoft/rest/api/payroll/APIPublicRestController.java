@@ -1,98 +1,64 @@
 package com.hp.contaSoft.rest.api.payroll;
 
-import java.util.UUID;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.hp.contaSoft.hibernate.dao.repositories.GroupCredentialsRepository;
-import com.hp.contaSoft.hibernate.dao.repositories.PayBookInstanceRepository;
-import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerPageRepository;
-import com.hp.contaSoft.hibernate.dao.repositories.TaxpayerRepository;
-import com.hp.contaSoft.hibernate.dao.repositories.TemplateDetailsRepository;
-import com.hp.contaSoft.hibernate.dao.repositories.UserRepository;
 import com.hp.contaSoft.hibernate.entities.AppUser;
-import com.hp.contaSoft.hibernate.entities.GroupCredentials;
-import com.hp.contaSoft.hibernate.entities.Role;
+import com.hp.contaSoft.service.UserRegistrationService;
 
 @RestController
-@RequestMapping("/public/api/")
+@RequestMapping(value = "/public/api/", produces = MediaType.APPLICATION_JSON_VALUE)
 public class APIPublicRestController {
 
 	@Autowired
-	UserRepository userRepository;
-	
-	@Autowired
-	TaxpayerRepository taxpayerRepository; 
-	
-	@Autowired
-	PayBookInstanceRepository payBookInstanceRepository;
-	
-	@Autowired
-	TemplateDetailsRepository templateDetailsRepository;
-	
-	@Autowired
-	TaxpayerPageRepository taxpayerPageRepository;
-	
-	@Autowired
-	GroupCredentialsRepository groupCredentialsRepository;
+	private UserRegistrationService userRegistrationService;
 
-	@Autowired
-	private BCryptPasswordEncoder bCryptPasswordEncoder;
-	
 	public Logger logger = LoggerFactory.getLogger(APIPublicRestController.class);
-	
+
 	@CrossOrigin("http://localhost:3000")
-	@PostMapping("/sign-up")
-	public Boolean SignUp(@RequestBody AppUser user) {
-		
+	@PostMapping(value = "/sign-up", produces = MediaType.APPLICATION_JSON_VALUE)
+	public ResponseEntity<Map<String, Object>> SignUp(@RequestBody AppUser user) {
+
 		logger.warn("sign-up");
-		
-		//0. Validate user doesn't exist
-		AppUser au = userRepository.findFirstByUsername(user.getUsername());
-		if(au != null) {
-			logger.info("User already exist");
-			return false;
+		Map<String, Object> response = new HashMap<>();
+
+		try {
+			userRegistrationService.registerUser(user.getUsername(), user.getPassword());
+			response.put("success", true);
+			response.put("message", "Cuenta creada exitosamente");
+			return ResponseEntity.ok(response);
+
+		} catch (IllegalArgumentException e) {
+			logger.warn("Validación fallida: {}", e.getMessage());
+			response.put("success", false);
+			response.put("message", e.getMessage());
+			return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+
+		} catch (RuntimeException e) {
+			logger.warn("Error de registro: {}", e.getMessage());
+			response.put("success", false);
+			response.put("message", e.getMessage());
+			return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
 		}
-		//1. Create family credentials
-		GroupCredentials gc = new GroupCredentials("name","type",UUID.randomUUID().toString());
-		groupCredentialsRepository.save(gc);
-		
-		//2.Set Role
-		user.setRole(new Role(user,1));
-		
-		//3. Persist User
-		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));
-		user.setGroupCredentials(gc);
-		userRepository.save(user);
-		
-		//2.1 We actually need to create and return a Family credentials for the new user
-		
-		//3. Save session information
-		// Maybe we need to save the sing-up stamp, user-agent, device
-		// Maybe we can do this as a filter?
-		
-		//4. What is the role of the user?
-		return true;
 	}
-	
+
 	@CrossOrigin("http://localhost:3000")
 	@PostMapping("/sign-in")
 	public Boolean SignIn(@RequestBody AppUser user) {
-		
+
 		logger.warn("SignIn");
-		//logger.warn(user);
-		//logger.warn(password);
-		
 		return true;
 	}
-	
-	
 }

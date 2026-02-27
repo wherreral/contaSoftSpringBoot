@@ -1,0 +1,60 @@
+:root{
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --success-color: #198754;
+
+    --bg-color: #f8f9fa;
+    --bg-card: #ffffff;
+    --text-color: #212529;
+    --text-muted: #6c757d;
+    --border-color: #dee2e6;
+
+    --navbar-bg: #0d6efd;
+    --input-bg: #ffffff;
+    --collapse-bg: #f8f9fa;
+    --info-badge-bg: #e7f1ff;
+    --info-badge-color: #0d6efd;
+
+    --sidebar-width: 280px;
+    --sidebar-bg: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+    --table-header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    --modal-header-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+[data-theme="dark"]{
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --success-color: #198754;
+
+    --bg-color: #1a1a2e;
+    --bg-card: #16213e;
+    --text-color: #e4e6eb;
+    --text-muted: #b0b3b8;
+    --border-color: #3a3a5c;
+
+    --navbar-bg: #0f3460;
+    --input-bg: #1f2940;
+    --collapse-bg: #1f2940;
+    --info-badge-bg: #0f2a5a;
+    --info-badge-color: #a3b3ff;
+
+    --sidebar-bg: linear-gradient(180deg, #0f3460 0%, #16213e 100%);
+    --table-header-bg: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+    --modal-header-bg: linear-gradient(135deg, #0f3460 0%, #16213e 100%);
+}
+
+/* Utility to ensure body consumes variable */
+body{ background-color: var(--bg-color); color: var(--text-color); }
+
+/* Card background */
+.client-table-card{ background: var(--bg-card); }
+
+.table-header{ background: var(--table-header-bg); color: var(--bg-card); }
+
+.modal-header{ background: var(--modal-header-bg); color: var(--bg-card); }
+
+.sidebar{ background: var(--sidebar-bg); }
+
+.form-label{ color: var(--text-muted); }
+
+.badge-light{ background: var(--info-badge-bg); color: var(--info-badge-color); }

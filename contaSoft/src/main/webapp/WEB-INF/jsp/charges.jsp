@@ -562,83 +562,11 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <button class="sidebar-close" id="sidebarClose">
-                <i class="bi bi-x-lg"></i>
-            </button>
-            <h4>
-                <i class="bi bi-calculator-fill me-2"></i>
-                ContaSoft
-            </h4>
-            <small>Sistema de Gestión</small>
-        </div>
-        <div class="sidebar-menu">
-            <div class="sidebar-section-title">Gestión Principal</div>
-            <a href="/" class="sidebar-menu-item">
-                <i class="bi bi-house-fill"></i>Inicio
-            </a>
-            <a href="/clientes" class="sidebar-menu-item">
-                <i class="bi bi-people-fill"></i>CRUD Clientes
-            </a>
-            <a href="/sucursales" class="sidebar-menu-item">
-                <i class="bi bi-building"></i>CRUD Sucursales
-            </a>
-            <a href="/templates" class="sidebar-menu-item">
-                <i class="bi bi-file-earmark-text-fill"></i>CRUD Templates
-            </a>
-            <div class="sidebar-section-title mt-3">Reportes y Datos</div>
-            <a href="/reportes" class="sidebar-menu-item">
-                <i class="bi bi-graph-up"></i>Reportes
-            </a>
-            <a href="/importar" class="sidebar-menu-item">
-                <i class="bi bi-upload"></i>Importar Datos
-            </a>
-            <div class="sidebar-section-title mt-3">Sistema</div>
-            <a href="/configuracion" class="sidebar-menu-item">
-                <i class="bi bi-gear-fill"></i>Configuración
-            </a>
-            <a href="#" onclick="logout()" class="sidebar-menu-item">
-                <i class="bi bi-box-arrow-right"></i>Cerrar Sesión
-            </a>
-        </div>
-    </div>
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+    <!-- Sidebar (cargado por sidebar.js) -->
+    <div id="sidebar-container"></div>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <button class="navbar-menu-btn" id="navbarMenuBtn">
-                <i class="bi bi-list"></i>
-            </button>
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-calculator-fill me-2"></i>
-                <strong>ContaSoft</strong>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="bi bi-house-fill me-1"></i> Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#"><i class="bi bi-file-earmark-text me-1"></i> Cargas</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="/configuracion"><i class="bi bi-gear-fill me-1"></i> Configuración</a>
-                    </li>
-                    <li class="nav-item">
-                        <button class="theme-toggle" id="themeToggle" title="Cambiar tema">
-                            <i class="bi bi-moon-fill" id="themeIcon"></i>
-                        </button>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+    <!-- Navbar (cargado por navbar.js) -->
+    <div id="navbar-container"></div>
 
     <!-- Main Content -->
     <main class="main-content">
@@ -730,10 +658,21 @@
             <c:if test="${not empty pbi}">
                 <div class="row mb-3">
                     <div class="col-12">
-                        <div class="d-flex justify-content-end">
+                        <div class="d-flex justify-content-end gap-3">
+                            <div class="filter-box">
+                                <label for="clientFilter" class="form-label me-2 mb-0">
+                                    <i class="bi bi-building me-1"></i>Cliente:
+                                </label>
+                                <select id="clientFilter" class="form-select form-select-sm" style="width: auto; min-width: 200px;">
+                                    <option value="">Todos los clientes</option>
+                                    <c:forEach items="${taxpayers}" var="tp">
+                                        <option value="${tp.id}" ${selectedClientId != null && selectedClientId == tp.id ? 'selected' : ''}>${tp.name}</option>
+                                    </c:forEach>
+                                </select>
+                            </div>
                             <div class="filter-box">
                                 <label for="monthFilter" class="form-label me-2 mb-0">
-                                    <i class="bi bi-funnel me-1"></i>Filtrar por Mes:
+                                    <i class="bi bi-funnel me-1"></i>Mes:
                                 </label>
                                 <select id="monthFilter" class="form-select form-select-sm" style="width: auto; min-width: 150px;">
                                     <option value="">Todos los meses</option>
@@ -773,7 +712,7 @@
                             </thead>
                             <tbody>
                                 <c:forEach items="${pbi}" var="PBI">
-                                    <tr>
+                                    <tr data-taxpayer-id="${PBI.taxpayer != null ? PBI.taxpayer.id : ''}">
                                         <td>
                                             <span class="badge bg-primary fs-6">${PBI.version}</span>
                                         </td>
@@ -900,6 +839,7 @@
                                 <tr>
                                     <th>RUT</th>
                                     <th>Centro Costo</th>
+                                    <th>R&eacute;gimen</th>
                                     <th>Sueldo Base</th>
                                     <th>Días Trab.</th>
                                     <th>Sueldo Mensual</th>
@@ -910,8 +850,9 @@
                                     <th><strong>Total Imponible</strong></th>
                                     <th>Colación</th>
                                     <th>Movilización</th>
-                                    <th>Asig. Fam.</th>
                                     <th>Desgaste</th>
+                                    <th>Cant. Asig. Fam.</th>
+                                    <th>Monto Asig. Fam.</th>
                                     <th><strong>Total No Imponible</strong></th>
                                     <th><strong>Total Haber</strong></th>
                                     <th>Previsión</th>
@@ -922,9 +863,18 @@
                                     <th>Valor Salud</th>
                                     <th>AFC</th>
                                     <th>TOTAL DCTO. PREVISIONAL</th>
-                                    <th>Asig. Fam.</th>
                                     <th><strong>Renta Líq. Imp.</strong></th>
                                     <th>IUT</th>
+                                    <th>Pr&eacute;stamos</th>
+                                    <th>Seg. Oncol.</th>
+                                    <th>Seg. Acc.</th>
+                                    <th>Anticipo</th>
+                                    <th>Desc APV</th>
+                                    <th>Desc Pr&eacute;st. CCAAFF</th>
+                                    <th>Desc Pr&eacute;st. Solidario</th>
+                                    <th><strong>TOTAL DESC. PERSONAL</strong></th>
+                                    <th><strong>TOTAL DESCUENTOS</strong></th>
+                                    <th><strong>ALCANCE L&Iacute;QUIDO</strong></th>
                                 </tr>
                             </thead>
                             <tbody id="detallesTableBody">
@@ -950,7 +900,16 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+
+    <!-- Módulos compartidos -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/navbar.js"></script>
+    <script>
+        loadNavbar('charges');
+        loadSidebar('charges');
+    </script>
+
     <script>
         // Formatear número como moneda chilena
         function formatMoney(value) {
@@ -996,10 +955,37 @@
                         tbody.innerHTML = '';
                         
                         data.forEach(function(item) {
+                            const afcValor = Number(item.valorAFC || 0);
+                            const dctoPrev = Number(item.totalDctoPrevisional || 0);
+                            const iut = Number(item.valorIUT || 0);
+
+                            const cantAsigFam = Number(item.asignacionFamiliar || 0);
+                            const montoAsigFam = Number(item.totalAsignacionFamiliar || 0);
+                            const colacion = Number(item.colacion || 0);
+                            const movilizacion = Number(item.movilizacion || 0);
+                            const desgaste = Number(item.descuentoHerramientas || 0);
+                            const totalNoImponible = colacion + movilizacion + montoAsigFam + desgaste;
+                            const totalHaber = Number(item.totalHaber || 0);
+
+                            const prestamos = Number(item.prestamos || 0);
+                            const segOnco = Number(item.seguroOncologico || 0);
+                            const segAcc = Number(item.valorSeguroOAccidentes || item.seguroOAccidentes || 0);
+                            const anticipo = Number(item.anticipo || 0);
+                            const descApv = Number(item.descApvCtaAh || 0);
+                            const descCcaaff = Number(item.descPtmoCcaaff || 0);
+                            const descSolidario = Number(item.descPtmoSolidario || 0);
+
+                            const totalDctoPersonal = prestamos + segOnco + segAcc + anticipo + descApv + descCcaaff + descSolidario;
+                            const totalDescuentos = dctoPrev + afcValor + totalDctoPersonal + iut;
+                            const alcanceLiquido = (item.alcanceLiquido !== null && item.alcanceLiquido !== undefined)
+                                ? Number(item.alcanceLiquido)
+                                : (totalHaber - totalDescuentos);
+
                             const row = document.createElement('tr');
                             row.innerHTML = 
                                 '<td><span class="badge badge-rut">' + (item.rut || '-') + '</span></td>' +
                                 '<td>' + (item.centroCosto || '-') + '</td>' +
+                                '<td>' + (item.regimen || '-') + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.sueldoBase) + '</td>' +
                                 '<td class="text-center">' + (item.diasTrabajados || 0) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.sueldoMensual) + '</td>' +
@@ -1010,9 +996,10 @@
                                 '<td class="text-money">' + formatMoney(item.totalImponible) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.colacion) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.movilizacion) + '</td>' +
-                                '<td class="text-money">' + formatMoney(item.totalAsignacionFamiliar) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.descuentoHerramientas) + '</td>' +
-                                '<td class="text-money">' + formatMoney((item.colacion || 0) + (item.movilizacion || 0) + (item.totalAsignacionFamiliar || 0) + (item.descuentoHerramientas || 0)) + '</td>' +
+                                '<td class="text-center">' + cantAsigFam + '</td>' +
+                                '<td class="text-money">' + formatMoney(montoAsigFam) + '</td>' +
+                                '<td class="text-money">' + formatMoney(totalNoImponible) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.totalHaber) + '</td>' +
                                 '<td>' + (item.prevision || '-') + '</td>' +
                                 '<td class="text-center">' + formatPercent(item.porcentajePrevision) + '</td>' +
@@ -1022,9 +1009,18 @@
                                 '<td class="text-money">' + formatMoney(item.valorSalud) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.valorAFC) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.totalDctoPrevisional) + '</td>' +
-                                '<td class="text-money">' + formatMoney(item.totalAsignacionFamiliar) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.rentaLiquidaImponible) + '</td>' +
-                                '<td class="text-money">' + formatMoney(item.valorIUT) + '</td>';
+                                '<td class="text-money">' + formatMoney(item.valorIUT) + '</td>' +
+                                '<td class="text-money">' + formatMoney(prestamos) + '</td>' +
+                                '<td class="text-money">' + formatMoney(segOnco) + '</td>' +
+                                '<td class="text-money">' + formatMoney(segAcc) + '</td>' +
+                                '<td class="text-money">' + formatMoney(anticipo) + '</td>' +
+                                '<td class="text-money">' + formatMoney(descApv) + '</td>' +
+                                '<td class="text-money">' + formatMoney(descCcaaff) + '</td>' +
+                                '<td class="text-money">' + formatMoney(descSolidario) + '</td>' +
+                                '<td class="text-money">' + formatMoney(totalDctoPersonal) + '</td>' +
+                                '<td class="text-money">' + formatMoney(totalDescuentos) + '</td>' +
+                                '<td class="text-money">' + formatMoney(alcanceLiquido) + '</td>';
                             tbody.appendChild(row);
                         });
                         
@@ -1070,71 +1066,6 @@
                     });
             });
         });
-
-        // ===== THEME TOGGLE FUNCTIONALITY =====
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-        const html = document.documentElement;
-        
-        // Check for saved theme preference or default to light
-        const savedTheme = localStorage.getItem('theme') || 'light';
-        html.setAttribute('data-theme', savedTheme);
-        updateThemeIcon(savedTheme);
-        
-        function updateThemeIcon(theme) {
-            if (theme === 'dark') {
-                themeIcon.className = 'bi bi-sun-fill';
-            } else {
-                themeIcon.className = 'bi bi-moon-fill';
-            }
-        }
-        
-        themeToggle.addEventListener('click', function() {
-            const currentTheme = html.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            
-            html.setAttribute('data-theme', newTheme);
-            localStorage.setItem('theme', newTheme);
-            updateThemeIcon(newTheme);
-        });
-
-        // ===== SIDEBAR FUNCTIONALITY =====
-        const sidebar = document.getElementById('sidebar');
-        const navbarMenuBtn = document.getElementById('navbarMenuBtn');
-        const sidebarClose = document.getElementById('sidebarClose');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-        function openSidebar() {
-            sidebar.classList.add('active');
-            sidebarOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        function closeSidebar() {
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        navbarMenuBtn.addEventListener('click', openSidebar);
-        sidebarClose.addEventListener('click', closeSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && sidebar.classList.contains('active')) {
-                closeSidebar();
-            }
-        });
-
-        // Logout function
-        function logout() {
-            if (confirm('¿Está seguro que desea cerrar sesión?')) {
-                fetch('/api/auth/logout', { method: 'POST' })
-                .finally(function() {
-                    localStorage.removeItem('jwtToken');
-                    localStorage.removeItem('username');
-                    localStorage.removeItem('familyId');
-                    window.location.replace('/login');
-                });
-            }
-        }
 
         // ===== UPLOAD WIDGET FUNCTIONALITY =====
         let selectedFile = null;
@@ -1310,42 +1241,39 @@
             }
         }
 
-        // ===== MONTH FILTER FUNCTIONALITY =====
-        document.getElementById('monthFilter').addEventListener('change', function() {
-            const selectedMonth = this.value;
+        // ===== FILTER FUNCTIONALITY =====
+        function applyFilters() {
+            const selectedMonth = document.getElementById('monthFilter').value;
+            const selectedClient = document.getElementById('clientFilter').value;
             const tableRows = document.querySelectorAll('.table tbody tr');
 
             tableRows.forEach(row => {
                 const month = row.querySelector('.btn-ver-detalles').getAttribute('data-month');
-                if (selectedMonth === '' || month === selectedMonth) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
+                const taxpayerId = row.getAttribute('data-taxpayer-id');
+                const matchMonth = selectedMonth === '' || month === selectedMonth;
+                const matchClient = selectedClient === '' || taxpayerId === selectedClient;
+                row.style.display = (matchMonth && matchClient) ? '' : 'none';
             });
 
-            // Update stats if needed
             updateFilteredStats();
-        });
+        }
+
+        document.getElementById('monthFilter').addEventListener('change', applyFilters);
+        document.getElementById('clientFilter').addEventListener('change', applyFilters);
 
         // Update stats based on visible rows
         function updateFilteredStats() {
             const visibleRows = document.querySelectorAll('.table tbody tr[style=""], .table tbody tr:not([style*="none"])');
             const totalFiltered = visibleRows.length;
 
-            // Update the total count card
             const totalCard = document.querySelector('.info-card-value');
             if (totalCard) {
-                // Store original total
                 if (!totalCard.dataset.original) {
                     totalCard.dataset.original = totalCard.textContent.trim();
                 }
 
-                if (document.getElementById('monthFilter').value === '') {
-                    totalCard.textContent = totalCard.dataset.original;
-                } else {
-                    totalCard.textContent = totalFiltered;
-                }
+                const noFilter = document.getElementById('monthFilter').value === '' && document.getElementById('clientFilter').value === '';
+                totalCard.textContent = noFilter ? totalCard.dataset.original : totalFiltered;
             }
         }
     </script>

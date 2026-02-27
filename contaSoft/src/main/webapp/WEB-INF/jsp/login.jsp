@@ -213,29 +213,77 @@
     <script>
         // Check if user is already logged in with a valid (non-expired) token
         window.addEventListener('DOMContentLoaded', function() {
-            const token = localStorage.getItem('jwtToken');
-            if (token) {
+            (async function() {
+                function clearLocalSession() {
+                    localStorage.removeItem('jwtToken');
+                    localStorage.removeItem('username');
+                    localStorage.removeItem('familyId');
+                    document.cookie = 'JWT_TOKEN=; path=/; max-age=0';
+                }
+
+                function syncLogout() {
+                    var xhr = new XMLHttpRequest();
+                    xhr.open('POST', '/api/auth/logout', false);
+                    try { xhr.send(); } catch (err) { console.warn('Sync logout failed', err); }
+                }
+
+                // If server signaled expiration via query param, clear and stop
+                if (new URLSearchParams(window.location.search).get('expired') === 'true') {
+                    clearLocalSession();
+                    return;
+                }
+
+                const token = localStorage.getItem('jwtToken');
+                if (!token) {
+                    clearLocalSession();
+                    syncLogout();
+                    return;
+                }
+
                 try {
                     const payload = JSON.parse(atob(token.split('.')[1]));
                     const exp = payload.exp * 1000; // JWT exp is in seconds
-                    if (exp > Date.now()) {
-                        // Set cookie so server-side can read it, then redirect
-                        const maxAge = Math.floor((exp - Date.now()) / 1000);
-                        document.cookie = 'JWT_TOKEN=' + token + '; path=/; max-age=' + maxAge;
-                        window.location.href = '/';
+                    if (exp <= Date.now()) {
+                        console.info('JWT expired locally, clearing session.');
+                        clearLocalSession();
+                        syncLogout();
                         return;
                     }
-                } catch(e) {
-                    console.warn('Token inválido, limpiando...');
+
+                    // Validate token with a small authenticated API call before redirecting
+                    try {
+                        const res = await fetch('/api/templates', {
+                            method: 'GET',
+                            headers: { 'Authorization': 'Bearer ' + token },
+                            credentials: 'same-origin'
+                        });
+
+                        if (res.ok) {
+                            const maxAge = Math.floor((exp - Date.now()) / 1000);
+                            document.cookie = 'JWT_TOKEN=' + token + '; path=/; max-age=' + maxAge;
+                            window.location.href = '/';
+                            return;
+                        } else if (res.status === 401 || res.status === 403) {
+                            console.warn('Server rejected token with status', res.status);
+                        } else {
+                            console.warn('Token validation returned non-ok status', res.status);
+                        }
+                    } catch (fetchErr) {
+                        console.warn('Token validation request failed', fetchErr);
+                    }
+
+                    // Server didn't accept the token or validation failed
+                    clearLocalSession();
+                    syncLogout();
+                    return;
+
+                } catch (e) {
+                    console.warn('Invalid JWT payload, clearing session.', e);
+                    clearLocalSession();
+                    syncLogout();
+                    return;
                 }
-                // Token expired or invalid, clean up
-                localStorage.removeItem('jwtToken');
-                localStorage.removeItem('username');
-                localStorage.removeItem('familyId');
-                var xhr = new XMLHttpRequest();
-                xhr.open('POST', '/api/auth/logout', false);
-                try { xhr.send(); } catch(e2) {}
-            }
+            })();
         });
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {

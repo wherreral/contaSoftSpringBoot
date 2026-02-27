@@ -201,48 +201,11 @@
     </style>
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark">
-        <div class="container-fluid">
-            <button class="navbar-menu-btn" id="navbarMenuBtn">
-                <i class="bi bi-list"></i>
-            </button>
-            <a class="navbar-brand fw-bold" href="/">
-                <i class="bi bi-building me-2"></i>ContaSoft
-            </a>
-            <div class="ms-auto d-flex align-items-center">
-                <button class="theme-toggle" id="themeToggle" title="Cambiar tema">
-                    <i class="bi bi-sun-fill" id="themeIcon"></i>
-                </button>
-                <span class="navbar-text text-white ms-3">
-                    <i class="bi bi-person-circle me-1"></i>${pageContext.request.userPrincipal.name}
-                </span>
-            </div>
-        </div>
-    </nav>
+	<!-- Sidebar (cargado por sidebar.js) -->
+	<div id="sidebar-container"></div>
 
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <h4><i class="bi bi-building"></i> ContaSoft</h4>
-            <p class="mb-0 small">Sistema de Gestión</p>
-        </div>
-        <div class="sidebar-menu">
-            <a href="/" class="sidebar-menu-item">
-                <i class="bi bi-house-door"></i>Inicio
-            </a>
-            <a href="/clientes" class="sidebar-menu-item">
-                <i class="bi bi-people"></i>Clientes
-            </a>
-            <a href="/sucursales" class="sidebar-menu-item">
-                <i class="bi bi-shop"></i>Sucursales
-            </a>
-            <a href="/templates" class="sidebar-menu-item">
-                <i class="bi bi-file-earmark-spreadsheet"></i>Templates
-            </a>
-        </div>
-    </div>
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
+	<!-- Navbar (cargado por navbar.js) -->
+	<div id="navbar-container"></div>
 
     <!-- Main Content -->
     <div class="container-fluid py-4">
@@ -255,6 +218,34 @@
                 <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#subsidiaryModal" onclick="resetForm()">
                     <i class="bi bi-plus-circle me-2"></i>Nueva Sucursal
                 </button>
+            </div>
+        </div>
+
+        <!-- Filtro por Cliente -->
+        <div class="card mb-3">
+            <div class="card-body py-2">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <label for="clientFilter" class="form-label mb-0 fw-bold">
+                            <i class="bi bi-funnel me-1"></i>Filtrar por Cliente:
+                        </label>
+                    </div>
+                    <div class="col-md-4">
+                        <select class="form-select form-select-sm" id="clientFilter" onchange="filterByClient(this.value)">
+                            <option value="">Todos los clientes</option>
+                            <c:forEach items="${taxpayers}" var="tp">
+                                <option value="${tp.id}" ${clientId != null && clientId == tp.id ? 'selected' : ''}>${tp.rut} - ${tp.name}</option>
+                            </c:forEach>
+                        </select>
+                    </div>
+                    <c:if test="${clientId != null}">
+                        <div class="col-auto">
+                            <a href="/sucursales" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-x-circle me-1"></i>Limpiar filtro
+                            </a>
+                        </div>
+                    </c:if>
+                </div>
             </div>
         </div>
 
@@ -355,37 +346,22 @@
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+	<!-- Módulos compartidos -->
+	<script src="/js/auth.js"></script>
+	<script src="/js/sidebar.js"></script>
+	<script src="/js/navbar.js"></script>
+	<script>
+		loadNavbar('sucursales');
+		loadSidebar('sucursales');
+	</script>
+
     <script>
-        // Sidebar functionality
-        const sidebar = document.getElementById('sidebar');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        const navbarMenuBtn = document.getElementById('navbarMenuBtn');
-
-        function toggleSidebar() {
-            sidebar.classList.toggle('active');
-            sidebarOverlay.classList.toggle('active');
-        }
-
-        navbarMenuBtn.addEventListener('click', toggleSidebar);
-        sidebarOverlay.addEventListener('click', toggleSidebar);
-
-        // Theme toggle
-        const themeToggle = document.getElementById('themeToggle');
-        const themeIcon = document.getElementById('themeIcon');
-        const currentTheme = localStorage.getItem('theme') || 'light';
-        document.documentElement.setAttribute('data-theme', currentTheme);
-        updateThemeIcon(currentTheme);
-
-        themeToggle.addEventListener('click', () => {
-            const theme = document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
-            document.documentElement.setAttribute('data-theme', theme);
-            localStorage.setItem('theme', theme);
-            updateThemeIcon(theme);
-        });
-
-        function updateThemeIcon(theme) {
-            themeIcon.className = theme === 'dark' ? 'bi bi-moon-fill' : 'bi bi-sun-fill';
+        function filterByClient(clientId) {
+            if (clientId) {
+                window.location.href = '/sucursales/cliente/' + clientId;
+            } else {
+                window.location.href = '/sucursales';
+            }
         }
 
         // Form functions

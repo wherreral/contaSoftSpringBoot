@@ -21,11 +21,21 @@ public class AFPFactors extends Base{
 	private String name;
 	@Column( name ="percentaje")
 	private double percentaje;
+	@Column( name ="sis_tasa")
+	private double sisTasa;
 
 	public AFPFactors(String name, double percentaje) {
 		super();
 		this.name = name;
 		this.percentaje = percentaje;
+		this.sisTasa = 1.49; // SIS default
+	}
+
+	public AFPFactors(String name, double percentaje, double sisTasa) {
+		super();
+		this.name = name;
+		this.percentaje = percentaje;
+		this.sisTasa = sisTasa;
 	}
 	
 	

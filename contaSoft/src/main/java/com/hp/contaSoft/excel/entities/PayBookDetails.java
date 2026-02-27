@@ -14,6 +14,7 @@ import javax.persistence.PrePersist;
 import javax.persistence.Table;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.hp.contaSoft.hibernate.dao.service.FileUtilsService;
+import com.hp.contaSoft.constant.Regimen;
 import com.hp.contaSoft.hibernate.entities.Base;
 import com.hp.contaSoft.hibernate.entities.PayBookInstance;
 import com.hp.contaSoft.hibernate.entities.Taxpayer;
@@ -135,7 +136,38 @@ public class PayBookDetails {
 	
 	@Column
 	private double anticipo;
-		
+
+	@Column
+	@CsvBindByName(column = "DESC_APV_CTA_AH")
+	private double descApvCtaAh;
+
+	@Column
+	@CsvBindByName(column = "DESC_PTMO_CCAAFF")
+	private double descPtmoCcaaff;
+
+	@Column
+	@CsvBindByName(column = "DESC_PTMO_SOLIDARIO")
+	private double descPtmoSolidario;
+
+	@Column
+	@CsvBindByName(column = "REGIMEN")
+	private String regimen;
+
+	/**
+	 * Returns the effective Regimen. Defaults to INDEFINIDO if not set.
+	 */
+	public Regimen getRegimenEffective() {
+		if (this.regimen == null || this.regimen.trim().isEmpty()) {
+			return Regimen.INDEFINIDO;
+		}
+		try {
+			return Regimen.valueOf(this.regimen.trim().toUpperCase());
+		} catch (IllegalArgumentException e) {
+			System.err.println("ADVERTENCIA: Régimen desconocido '" + this.regimen + "' para RUT " + this.rut + ". Usando INDEFINIDO.");
+			return Regimen.INDEFINIDO;
+		}
+	}
+
 	/**
 	 * Campos Calculados
 	 */
@@ -186,6 +218,12 @@ public class PayBookDetails {
 	
 	@Column
 	private double totalHoraExtra;
+
+	@Column
+	private double afcEmpleador;
+
+	@Column
+	private double sisEmpleador;
 	
 	@JsonBackReference
 	@ManyToOne(cascade={CascadeType.ALL})
@@ -208,7 +246,7 @@ public class PayBookDetails {
 	
 	public void calculateGratificacion() {
 		// Gratificación = (25% del sueldo base / 12 meses) * proporción de días trabajados
-		this.gratificacion = ((this.sueldoBase * 0.25) / 12) * (this.diasTrabajados / 30.0); 
+		this.gratificacion = ((this.sueldoBase * 4.75) / 12) * (this.diasTrabajados / 30.0); 
 	}
 
 	public void calculateValorHora() {
@@ -221,7 +259,7 @@ public class PayBookDetails {
 	}
 	
 	public void calculateTotalHaber() {
-		this.totalHaber = this.movilizacion + this.colacion + this.descuentoHerramientas + this.totalImponible; 
+		this.totalHaber = this.totalImponible + this.colacion + this.movilizacion + this.totalAsignacionFamiliar + this.descuentoHerramientas; 
 	}
 	
 	public void calculatePrevision() {
@@ -238,9 +276,11 @@ public class PayBookDetails {
 	}
 	
 	public void calculateAfc() {
-		// AFC should be applied over the imponible (totalImponible)
-		// If `afc` is expressed as a percentage (e.g. 1.8), this computes:
-		// valorAFC = afc% * totalImponible = (afc * totalImponible) / 100
+		// AFC only applies to INDEFINIDO contracts
+		if (getRegimenEffective() == Regimen.PLAZO_FIJO) {
+			this.valorAFC = 0.0;
+			return;
+		}
 		this.valorAFC = (this.afc * this.totalImponible) / 100.0;
 	}
 
@@ -250,10 +290,10 @@ public class PayBookDetails {
 	 * Jackson will serialize this getter as `totalDctoPrevisional` in the JSON response.
 	 */
 	public double getTotalDctoPrevisional() {
+		// AFC excluded from 'descuentos previsionales' as requested.
 		double vp = this.getValorPrevision();
-		double va = this.getValorAFC();
 		double vs = this.getValorSalud();
-		return vp + va + vs;
+		return vp + vs;
 	}
 	
 	public void calculateRentaLiquidaImponible() {
@@ -262,15 +302,42 @@ public class PayBookDetails {
 	}
 
 	public void calculateSeguroAccidentes() {
-		this.valorSeguroOAccidentes = 1; 
+		this.valorSeguroOAccidentes = 1;
+	}
+
+	/**
+	 * Calcula AFC empleador: 2.4% para INDEFINIDO, 3.0% para PLAZO_FIJO
+	 */
+	public void calculateAfcEmpleador() {
+		if (getRegimenEffective() == Regimen.PLAZO_FIJO) {
+			this.afcEmpleador = this.totalImponible * 0.03;
+		} else {
+			this.afcEmpleador = this.totalImponible * 0.024;
+		}
+	}
+
+	/**
+	 * Calcula SIS (Seguro de Invalidez y Sobrevivencia) — cargo del empleador
+	 * @param sisTasa tasa SIS de la AFP (ej: 1.49)
+	 */
+	public void calculateSis(double sisTasa) {
+		this.sisEmpleador = this.totalImponible * sisTasa / 100.0;
+	}
+
+	/**
+	 * Total costo empleador (transient)
+	 */
+	public double getTotalCostoEmpleador() {
+		return this.afcEmpleador + this.sisEmpleador;
 	}
 	
 	/**
-	 * Calculo de UIT
+	 * Calculo de IUT (Impuesto Unico Trabajadores)
+	 * Formula SII: IUT = (rentaLiquidaImponible * factor) - cantidadARebajar
 	 */
-	
-	public void calculateValorUIT(double factor) {
-		this.valorIUT = (this.rentaLiquidaImponible * factor); 
+
+	public void calculateValorUIT(double factor, double rebaja) {
+		this.valorIUT = Math.max(0, (this.rentaLiquidaImponible * factor) - rebaja);
 	}
 	
 	public void calculateTotalHoraExtra() {
@@ -294,14 +361,15 @@ public class PayBookDetails {
 	 */
 	public double calculateBonoByAlgebraicMethod(double alcanceLiquidoTarget) {
 		// Componentes NO imponibles
-		double noImponible = this.movilizacion + this.colacion + this.descuentoHerramientas;
+		double noImponible = this.movilizacion + this.colacion + this.descuentoHerramientas + this.totalAsignacionFamiliar;
 
 		// Base imponible SIN bono (ya calculados antes)
 		double baseImponibleSinBono = this.sueldoMensual + this.gratificacion +
 									   this.aguinaldo + this.totalHoraExtra;
 
-		// Porcentaje TOTAL de descuentos previsionales (AFP + Salud + AFC)
-		double totalDescuentoPorcentaje = (this.porcentajePrevision + this.saludPorcentaje + this.afc) / 100.0;
+		// Porcentaje TOTAL de descuentos previsionales (AFP + Salud + AFC si INDEFINIDO)
+		double afcEfectivo = (getRegimenEffective() == Regimen.PLAZO_FIJO) ? 0.0 : this.afc;
+		double totalDescuentoPorcentaje = (this.porcentajePrevision + this.saludPorcentaje + afcEfectivo) / 100.0;
 
 		// Fórmula algebraica directa
 		// ALCANCE_LIQUIDO = TOTAL_HABER - DCTO_PREVISIONALES
@@ -349,10 +417,11 @@ public class PayBookDetails {
 	 */
 	public double calculateBonoByNewtonRaphson(double alcanceLiquidoTarget) {
 		// Componentes que NO dependen del bono
-		double noImponible = this.movilizacion + this.colacion + this.descuentoHerramientas;
+		double noImponible = this.movilizacion + this.colacion + this.descuentoHerramientas + this.totalAsignacionFamiliar;
 		double baseImponibleSinBono = this.sueldoMensual + this.gratificacion +
 									   this.aguinaldo + this.totalHoraExtra;
-		double totalDescuentoPorcentaje = (this.porcentajePrevision + this.saludPorcentaje + this.afc) / 100.0;
+		double afcEfectivo = (getRegimenEffective() == Regimen.PLAZO_FIJO) ? 0.0 : this.afc;
+		double totalDescuentoPorcentaje = (this.porcentajePrevision + this.saludPorcentaje + afcEfectivo) / 100.0;
 
 		// Validación
 		if (totalDescuentoPorcentaje >= 1.0) {

@@ -10,15 +10,12 @@
     <!-- Bootstrap 5 -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
+
+    <link rel="stylesheet" href="/css/theme.css">
+
     <style>
-        :root {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-        }
-        
         body {
-            background: #f8f9fa;
+            background: var(--bg-color);
         }
         
         /* Sidebar Styles */
@@ -28,7 +25,7 @@
             left: -300px;
             width: 280px;
             height: 100vh;
-            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            background: var(--sidebar-bg);
             z-index: 1050;
             transition: left 0.3s ease;
             box-shadow: 4px 0 20px rgba(0,0,0,0.2);
@@ -154,12 +151,12 @@
         }
         
         .template-card {
-            border: 2px solid #e0e0e0;
+            border: 2px solid var(--border-color);
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 15px;
             transition: all 0.3s ease;
-            background: white;
+            background: var(--bg-card);
         }
         
         .template-card:hover {
@@ -173,8 +170,8 @@
         }
         
         .badge-active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            background: var(--table-header-bg);
+            color: var(--bg-card);
             padding: 5px 15px;
             border-radius: 20px;
         }
@@ -182,17 +179,17 @@
         .field-library {
             max-height: 600px;
             overflow-y: auto;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--border-color);
             border-radius: 8px;
             padding: 15px;
-            background: white;
+            background: var(--bg-card);
         }
         
         .field-item {
             padding: 10px;
             margin: 5px 0;
-            background: white;
-            border: 1px solid #dee2e6;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
             border-radius: 6px;
             cursor: pointer;
             transition: all 0.2s;
@@ -267,104 +264,11 @@
     </style>
 </head>
 <body>
-    <!-- Sidebar -->
-    <div class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <button class="sidebar-close" id="sidebarClose">
-                <i class="bi bi-x-lg"></i>
-            </button>
-            <h4>
-                <i class="bi bi-calculator-fill me-2"></i>
-                ContaSoft
-            </h4>
-            <small>Sistema de Gestión</small>
-        </div>
-        
-        <div class="sidebar-menu">
-            <div class="sidebar-section-title">Gestión Principal</div>
-            
-            <a href="/" class="sidebar-menu-item">
-                <i class="bi bi-house-fill"></i>
-                Inicio
-            </a>
-            
-            <a href="/clientes" class="sidebar-menu-item">
-                <i class="bi bi-people-fill"></i>
-                CRUD Clientes
-            </a>
-            
-            <a href="/sucursales" class="sidebar-menu-item">
-                <i class="bi bi-building"></i>
-                CRUD Sucursales
-            </a>
-            
-            <a href="/templates" class="sidebar-menu-item active">
-                <i class="bi bi-file-earmark-text-fill"></i>
-                CRUD Templates
-            </a>
-            
-            <div class="sidebar-section-title mt-3">Reportes y Datos</div>
-            
-            <a href="/reportes" class="sidebar-menu-item">
-                <i class="bi bi-graph-up"></i>
-                Reportes
-            </a>
-            
-            <a href="/importar" class="sidebar-menu-item">
-                <i class="bi bi-upload"></i>
-                Importar Datos
-            </a>
-            
-            <div class="sidebar-section-title mt-3">Sistema</div>
-            
-            <a href="/configuracion" class="sidebar-menu-item">
-                <i class="bi bi-gear-fill"></i>
-                Configuración
-            </a>
-            
-            <a href="/ayuda" class="sidebar-menu-item">
-                <i class="bi bi-question-circle-fill"></i>
-                Ayuda
-            </a>
-        </div>
-    </div>
-    
-    <!-- Sidebar Overlay -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-    
-    <!-- Floating Sidebar Toggle Button -->
-    <button class="sidebar-toggle" id="sidebarToggle">
-        <i class="bi bi-list"></i>
-    </button>
+	<!-- Sidebar (cargado por sidebar.js) -->
+	<div id="sidebar-container"></div>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
-        <div class="container-fluid">
-            <button class="navbar-menu-btn" id="navbarMenuBtn">
-                <i class="bi bi-list"></i>
-            </button>
-            <a class="navbar-brand" href="/">
-                <i class="bi bi-calculator-fill me-2"></i>
-                <strong>ContaSoft</strong>
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link" href="/"><i class="bi bi-house-fill me-1"></i> Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="/templates"><i class="bi bi-file-earmark-text me-1"></i> Templates</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="#"><i class="bi bi-gear-fill me-1"></i> Configuración</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
+	<!-- Navbar (cargado por navbar.js) -->
+	<div id="navbar-container"></div>
 
     <!-- Vista de Listado de Templates -->
     <div id="template-list-view" class="container mt-4">
@@ -550,10 +454,19 @@
         </div>
     </div>
 
-    <!-- Bootstrap JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- JavaScript de la aplicación -->
+	<!-- Bootstrap JS -->
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+	<!-- Módulos compartidos -->
+	<script src="/js/auth.js"></script>
+	<script src="/js/sidebar.js"></script>
+	<script src="/js/navbar.js"></script>
+	<script>
+		loadNavbar('templates');
+		loadSidebar('templates');
+	</script>
+
+	<!-- JavaScript de la aplicación -->
     <script>
         // Configuración de la API
         const API_BASE = 'http://localhost:8080';
@@ -1119,36 +1032,6 @@
             }, 5000);
         }
         
-        // Sidebar functionality
-        const sidebar = document.getElementById('sidebar');
-        const sidebarToggle = document.getElementById('sidebarToggle');
-        const navbarMenuBtn = document.getElementById('navbarMenuBtn');
-        const sidebarClose = document.getElementById('sidebarClose');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-        
-        function openSidebar() {
-            sidebar.classList.add('active');
-            sidebarOverlay.classList.add('active');
-            document.body.style.overflow = 'hidden';
-        }
-        
-        function closeSidebar() {
-            sidebar.classList.remove('active');
-            sidebarOverlay.classList.remove('active');
-            document.body.style.overflow = '';
-        }
-        
-        sidebarToggle.addEventListener('click', openSidebar);
-        navbarMenuBtn.addEventListener('click', openSidebar);
-        sidebarClose.addEventListener('click', closeSidebar);
-        sidebarOverlay.addEventListener('click', closeSidebar);
-        
-        // Close sidebar on ESC key
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape' && sidebar.classList.contains('active')) {
-                closeSidebar();
-            }
-        });
     </script>
 </body>
 </html>

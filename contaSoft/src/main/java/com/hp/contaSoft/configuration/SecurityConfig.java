@@ -56,14 +56,17 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/ui/afp/*/nickname").authenticated()
                 .antMatchers("/api/ui/afp/nicknames").authenticated()
                 .antMatchers("/api/ui/afp/**").permitAll()
+                .antMatchers("/api/ui/afamiliar/**").permitAll()
                 // API de Health/Isapres - CRUD de configuraciones
                 .antMatchers("/api/ui/health/**").permitAll()
+                // API de configuración general - solo ADMIN
+                .antMatchers("/api/ui/configuracion-general/**").hasRole("ADMIN")
                 // Configuración página
                 .antMatchers("/configuracion/**").permitAll()
                 // Pages served by controllers (JSP views)
                 .antMatchers(HttpMethod.GET, "/clientes").permitAll()
                 .antMatchers(HttpMethod.GET, "/sucursales/**").permitAll()
-                .antMatchers(HttpMethod.POST, "/charges").permitAll()
+                .antMatchers("/charges").permitAll()
                 .antMatchers(HttpMethod.POST, "/importBook2").permitAll()
                 .antMatchers(HttpMethod.GET, "/importBook2").permitAll()
                 .antMatchers(HttpMethod.POST, "/importBookAjax").permitAll()
@@ -89,7 +92,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                             response.setContentType("application/json");
                             response.getWriter().write("{\"success\":false,\"message\":\"No autenticado. Por favor inicie sesión.\"}");
                         } else {
-                            response.sendRedirect("/login");
+                            response.sendRedirect("/login?expired=true");
                         }
                     });
     }

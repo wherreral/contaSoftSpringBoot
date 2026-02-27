@@ -32,7 +32,10 @@ public class AFPRestController {
 
     @Autowired
     private AfpFactorNicknameRepository afpFactorNicknameRepository;
-    
+
+    @Autowired
+    private com.hp.contaSoft.service.ReferenceDataCache referenceDataCache;
+
     public AFPRestController() {
         logger.info("=== AFPRestController INITIALIZED ===");
     }
@@ -151,7 +154,8 @@ public class AFPRestController {
             
             // Guardar la AFP
             AFPFactors savedAFP = afpFactorsRepository.save(afp);
-            
+            referenceDataCache.reload();
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "AFP creada exitosamente");
@@ -198,7 +202,8 @@ public class AFPRestController {
             
             // Guardar cambios
             AFPFactors updatedAFP = afpFactorsRepository.save(afp);
-            
+            referenceDataCache.reload();
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "AFP actualizada exitosamente");
@@ -232,7 +237,8 @@ public class AFPRestController {
             
             // Eliminar la AFP
             afpFactorsRepository.delete(afp);
-            
+            referenceDataCache.reload();
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "AFP eliminada exitosamente");
@@ -316,6 +322,7 @@ public class AFPRestController {
                     afpFactorNicknameRepository.save(nn);
                 }
             }
+            referenceDataCache.reload();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

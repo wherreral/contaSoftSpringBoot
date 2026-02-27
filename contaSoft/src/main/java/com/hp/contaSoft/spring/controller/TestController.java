@@ -23,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.hp.contaSoft.constant.Regimen;
 import com.hp.contaSoft.custom.CurrentUser;
 import com.hp.contaSoft.excel.entities.PayBookDetails;
 import com.hp.contaSoft.hibernate.dao.projection.PrevisionProjection;
@@ -371,7 +372,7 @@ public class TestController {
                 		System.out.println("Redirigiendo a charges con clientId: " + clientId);
                 		// Retornar éxito con URL de redirección
                 		response.put("success", true);
-                		response.put("redirectUrl", "/charges?id=" + clientId);
+                		response.put("redirectUrl", "/charges");
                 		response.put("message", "Archivo importado correctamente");
                 		return response;
                 	}
@@ -437,29 +438,31 @@ public class TestController {
 	
 
 	@RequestMapping(value="/charges", method = { RequestMethod.POST, RequestMethod.GET })
-	public String handleCharge(@RequestParam Long id, HttpServletRequest request, Model model, Authentication authentication) {
+	public String handleCharge(@RequestParam(required = false) Long id, HttpServletRequest request, Model model, Authentication authentication) {
 
-		System.out.println("charges post");
-		System.out.println("id="+id);
-		
-		// Obtener familyId del usuario autenticado
-		String familyId = null;
-		if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof CurrentUser) {
-			CurrentUser currentUser = (CurrentUser) authentication.getPrincipal();
-			familyId = currentUser.getFamilId();
-			System.out.println("FamilyId obtenido: " + familyId);
+		// Require authentication
+		if (authentication == null || !authentication.isAuthenticated()
+				|| !(authentication.getPrincipal() instanceof CurrentUser)) {
+			return "redirect:/login";
 		}
-		
+
+		CurrentUser currentUser = (CurrentUser) authentication.getPrincipal();
+		String familyId = currentUser.getFamilId();
+
 		List<PayBookInstance> listPBI;
-		if (familyId != null) {
+		if (id != null) {
 			listPBI = (List<PayBookInstance>) payBookInstanceRepository.findAllByFamilyIdAndTaxpayerId(familyId, id);
 		} else {
-			// Fallback, pero debería requerir autenticación
-			listPBI = (List<PayBookInstance>) payBookInstanceRepository.findAllByTaxpayerIdOrderByVersionDesc(id);
+			listPBI = (List<PayBookInstance>) payBookInstanceRepository.findAllByFamilyId(familyId);
 		}
 		System.out.println("Cantidad de PBI:"+listPBI.size());
 		model.addAttribute("pbi", listPBI);
-		
+
+		// Taxpayers for client filter dropdown
+		List<Taxpayer> taxpayers = taxpayerRepository.findByFamilyId(familyId);
+		model.addAttribute("taxpayers", taxpayers);
+		model.addAttribute("selectedClientId", id);
+
 		return "charges";
 	}
 	
@@ -506,8 +509,10 @@ public class TestController {
 		// Recalcular valores necesarios para la vista por si provienen de imports antiguos
 		for (PayBookDetails d : listPBD) {
 			try {
-				// Si afc==0 usamos el parámetro global AFC
-				if (d.getAfc() == 0.0) {
+				// Si afc==0 usamos el parámetro global AFC (solo para INDEFINIDO)
+				if (d.getRegimenEffective() == Regimen.PLAZO_FIJO) {
+					d.setAfc(0.0);
+				} else if (d.getAfc() == 0.0) {
 					try {
 						java.util.List<com.hp.contaSoft.hibernate.entities.SystemParameter> params = systemParameterService.findByNameIgnoreCase("AFC");
 						if (params != null && !params.isEmpty()) {

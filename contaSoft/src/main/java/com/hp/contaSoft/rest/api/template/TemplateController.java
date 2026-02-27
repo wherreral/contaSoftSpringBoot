@@ -179,13 +179,16 @@ public class TemplateController {
             Template template = templateRepository.findById(id)
                 .orElseThrow(() -> new Exception("Template no encontrado"));
             logger.info("getTemplate - template encontrado: {}", template.getName());
-            
-            // Validar que pertenece al mismo familyId
-            if (!template.getTaxpayer().getFamilyId().equals(familyId)) {
+
+            // Validar que pertenece al mismo familyId (por taxpayer o por family directamente)
+            String templateFamilyId = template.getTaxpayer() != null
+                ? template.getTaxpayer().getFamilyId()
+                : template.getFamily();
+            if (templateFamilyId == null || !templateFamilyId.equals(familyId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(createErrorResponse("No tienes permiso para acceder a este template"));
             }
-            
+
             return ResponseEntity.ok(template);
         } catch (Exception e) {
             logger.error("Error al obtener template: ", e);
@@ -240,6 +243,7 @@ public class TemplateController {
             template.setValue(dto.getValue());
             template.setDescription(dto.getDescription());
             template.setActive(false); // Por defecto inactivo
+            template.setFamily(familyId);
             
             template = templateRepository.save(template);
             
@@ -270,13 +274,22 @@ public class TemplateController {
             
             Template template = templateRepository.findById(id)
                 .orElseThrow(() -> new Exception("Template no encontrado"));
-            
+
+            // No se puede modificar el template default
+            if (template.isDefaultTemplate()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse("El template por defecto no se puede modificar"));
+            }
+
             // Validar que pertenece al mismo familyId
-            if (!template.getTaxpayer().getFamilyId().equals(familyId)) {
+            String templateFamilyId = template.getTaxpayer() != null
+                ? template.getTaxpayer().getFamilyId()
+                : template.getFamily();
+            if (templateFamilyId == null || !templateFamilyId.equals(familyId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(createErrorResponse("No tienes permiso para modificar este template"));
             }
-            
+
             // Validar campos
             if (dto.getValue() != null && !dto.getValue().trim().isEmpty() && !dto.getValue().equals("{}")) {
                 templateService.validateTemplateFields(dto.getValue());
@@ -308,13 +321,22 @@ public class TemplateController {
             
             Template template = templateRepository.findById(id)
                 .orElseThrow(() -> new Exception("Template no encontrado"));
-            
+
+            // No se puede eliminar el template default
+            if (template.isDefaultTemplate()) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(createErrorResponse("El template por defecto no se puede eliminar"));
+            }
+
             // Validar que pertenece al mismo familyId
-            if (!template.getTaxpayer().getFamilyId().equals(familyId)) {
+            String templateFamilyId = template.getTaxpayer() != null
+                ? template.getTaxpayer().getFamilyId()
+                : template.getFamily();
+            if (templateFamilyId == null || !templateFamilyId.equals(familyId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(createErrorResponse("No tienes permiso para eliminar este template"));
             }
-            
+
             if (template.isActive()) {
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(createErrorResponse("No se puede eliminar el template activo"));

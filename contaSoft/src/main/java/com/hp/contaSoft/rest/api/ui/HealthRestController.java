@@ -24,7 +24,10 @@ public class HealthRestController {
 
     @Autowired
     private HealthFactorsRepository healthFactorsRepository;
-    
+
+    @Autowired
+    private com.hp.contaSoft.service.ReferenceDataCache referenceDataCache;
+
     public HealthRestController() {
         logger.info("=== HealthRestController INITIALIZED ===");
     }
@@ -110,7 +113,8 @@ public class HealthRestController {
             
             // Guardar la Isapre
             HealthFactors savedHealth = healthFactorsRepository.save(health);
-            
+            referenceDataCache.reload();
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Isapre creada exitosamente");
@@ -158,7 +162,8 @@ public class HealthRestController {
             
             // Guardar cambios
             HealthFactors updatedHealth = healthFactorsRepository.save(health);
-            
+            referenceDataCache.reload();
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Isapre actualizada exitosamente");
@@ -192,7 +197,8 @@ public class HealthRestController {
             
             // Eliminar la Isapre
             healthFactorsRepository.delete(health);
-            
+            referenceDataCache.reload();
+
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);
             response.put("message", "Isapre eliminada exitosamente");

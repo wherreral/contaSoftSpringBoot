@@ -1,0 +1,186 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jasperReport xmlns="http://jasperreports.sourceforge.net/jasperreports"
+              xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+              xsi:schemaLocation="http://jasperreports.sourceforge.net/jasperreports http://jasperreports.sourceforge.net/xsd/jasperreport.xsd"
+              name="MonthlyClientSummaryReport"
+              pageWidth="842" pageHeight="595"
+              orientation="Landscape"
+              columnWidth="802"
+              leftMargin="20" rightMargin="20" topMargin="20" bottomMargin="20">
+
+    <parameter name="clientName" class="java.lang.String"/>
+    <parameter name="clientRut" class="java.lang.String"/>
+    <parameter name="periodLabel" class="java.lang.String"/>
+    <parameter name="generatedAt" class="java.lang.String"/>
+    <parameter name="generatedBy" class="java.lang.String"/>
+
+    <parameter name="workersCount" class="java.lang.Integer"/>
+    <parameter name="totalImponible" class="java.lang.Double"/>
+    <parameter name="totalNoImponible" class="java.lang.Double"/>
+    <parameter name="totalHaber" class="java.lang.Double"/>
+    <parameter name="totalDctoPrevisional" class="java.lang.Double"/>
+    <parameter name="totalDctoPersonal" class="java.lang.Double"/>
+    <parameter name="totalDescuentos" class="java.lang.Double"/>
+    <parameter name="totalAlcanceLiquido" class="java.lang.Double"/>
+
+    <field name="rut" class="java.lang.String"/>
+    <field name="centroCosto" class="java.lang.String"/>
+    <field name="diasTrabajados" class="java.lang.Integer"/>
+    <field name="sueldoMensual" class="java.lang.Double"/>
+    <field name="gratificacion" class="java.lang.Double"/>
+    <field name="bonoProduccion" class="java.lang.Double"/>
+    <field name="totalImponible" class="java.lang.Double"/>
+    <field name="totalDctoPrevisional" class="java.lang.Double"/>
+    <field name="totalDctoPersonal" class="java.lang.Double"/>
+    <field name="totalDescuentos" class="java.lang.Double"/>
+    <field name="alcanceLiquido" class="java.lang.Double"/>
+
+    <title>
+        <band height="80">
+            <staticText>
+                <reportElement x="0" y="0" width="450" height="22"/>
+                <textElement>
+                    <font size="14" isBold="true"/>
+                </textElement>
+                <text><![CDATA[Resumen Mensual por Cliente]]></text>
+            </staticText>
+            <textField>
+                <reportElement x="0" y="26" width="520" height="16"/>
+                <textFieldExpression><![CDATA["Cliente: " + $P{clientName} + " (" + $P{clientRut} + ")"]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="0" y="44" width="260" height="16"/>
+                <textFieldExpression><![CDATA["Período: " + $P{periodLabel}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="560" y="26" width="242" height="16"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Generado: " + $P{generatedAt}]]></textFieldExpression>
+            </textField>
+            <textField>
+                <reportElement x="560" y="44" width="242" height="16"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA["Usuario: " + $P{generatedBy}]]></textFieldExpression>
+            </textField>
+        </band>
+    </title>
+
+    <pageHeader>
+        <band height="42">
+            <textField>
+                <reportElement x="0" y="0" width="200" height="16"/>
+                <textFieldExpression><![CDATA["Trabajadores: " + $P{workersCount}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0">
+                <reportElement x="0" y="18" width="200" height="16"/>
+                <textFieldExpression><![CDATA[$P{totalImponible}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0">
+                <reportElement x="205" y="18" width="200" height="16"/>
+                <textFieldExpression><![CDATA[$P{totalNoImponible}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0">
+                <reportElement x="410" y="18" width="200" height="16"/>
+                <textFieldExpression><![CDATA[$P{totalHaber}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0">
+                <reportElement x="615" y="18" width="187" height="16"/>
+                <textElement textAlignment="Right"/>
+                <textFieldExpression><![CDATA[$P{totalAlcanceLiquido}]]></textFieldExpression>
+            </textField>
+
+            <staticText>
+                <reportElement x="0" y="30" width="200" height="12"/>
+                <textElement><font size="8"/></textElement>
+                <text><![CDATA[Total Imponible]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="205" y="30" width="200" height="12"/>
+                <textElement><font size="8"/></textElement>
+                <text><![CDATA[Total No Imponible]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="410" y="30" width="200" height="12"/>
+                <textElement><font size="8"/></textElement>
+                <text><![CDATA[Total Haber]]></text>
+            </staticText>
+            <staticText>
+                <reportElement x="615" y="30" width="187" height="12"/>
+                <textElement textAlignment="Right"><font size="8"/></textElement>
+                <text><![CDATA[Total Alcance Líquido]]></text>
+            </staticText>
+        </band>
+    </pageHeader>
+
+    <columnHeader>
+        <band height="18">
+            <staticText><reportElement x="0" y="0" width="90" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[RUT]]></text></staticText>
+            <staticText><reportElement x="90" y="0" width="90" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[C. Costo]]></text></staticText>
+            <staticText><reportElement x="180" y="0" width="40" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[DT]]></text></staticText>
+            <staticText><reportElement x="220" y="0" width="76" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[S. Mensual]]></text></staticText>
+            <staticText><reportElement x="296" y="0" width="74" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Gratif.]]></text></staticText>
+            <staticText><reportElement x="370" y="0" width="70" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Bono]]></text></staticText>
+            <staticText><reportElement x="440" y="0" width="80" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Imponible]]></text></staticText>
+            <staticText><reportElement x="520" y="0" width="70" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Dcto Prev.]]></text></staticText>
+            <staticText><reportElement x="590" y="0" width="70" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Dcto Pers.]]></text></staticText>
+            <staticText><reportElement x="660" y="0" width="70" height="18"/><textElement><font size="9" isBold="true"/></textElement><text><![CDATA[Descuentos]]></text></staticText>
+            <staticText><reportElement x="730" y="0" width="72" height="18"/><textElement textAlignment="Right"><font size="9" isBold="true"/></textElement><text><![CDATA[Alcance]]></text></staticText>
+        </band>
+    </columnHeader>
+
+    <detail>
+        <band height="16">
+            <textField><reportElement x="0" y="0" width="90" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{rut}]]></textFieldExpression></textField>
+            <textField><reportElement x="90" y="0" width="90" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{centroCosto}]]></textFieldExpression></textField>
+            <textField><reportElement x="180" y="0" width="40" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{diasTrabajados}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement x="220" y="0" width="76" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{sueldoMensual}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement x="296" y="0" width="74" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{gratificacion}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement x="370" y="0" width="70" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{bonoProduccion}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement x="440" y="0" width="80" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{totalImponible}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement x="520" y="0" width="70" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{totalDctoPrevisional}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement x="590" y="0" width="70" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{totalDctoPersonal}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement x="660" y="0" width="70" height="16"/><textElement><font size="8"/></textElement><textFieldExpression><![CDATA[$F{totalDescuentos}]]></textFieldExpression></textField>
+            <textField pattern="#,##0"><reportElement x="730" y="0" width="72" height="16"/><textElement textAlignment="Right"><font size="8"/></textElement><textFieldExpression><![CDATA[$F{alcanceLiquido}]]></textFieldExpression></textField>
+        </band>
+    </detail>
+
+    <summary>
+        <band height="36">
+            <line>
+                <reportElement x="0" y="2" width="802" height="1"/>
+            </line>
+            <staticText>
+                <reportElement x="0" y="8" width="120" height="16"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <text><![CDATA[Totales Generales]]></text>
+            </staticText>
+            <textField pattern="#,##0">
+                <reportElement x="440" y="8" width="80" height="16"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{totalImponible}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0">
+                <reportElement x="520" y="8" width="70" height="16"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{totalDctoPrevisional}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0">
+                <reportElement x="590" y="8" width="70" height="16"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{totalDctoPersonal}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0">
+                <reportElement x="660" y="8" width="70" height="16"/>
+                <textElement><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{totalDescuentos}]]></textFieldExpression>
+            </textField>
+            <textField pattern="#,##0">
+                <reportElement x="730" y="8" width="72" height="16"/>
+                <textElement textAlignment="Right"><font size="9" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$P{totalAlcanceLiquido}]]></textFieldExpression>
+            </textField>
+        </band>
+    </summary>
+
+</jasperReport>
+

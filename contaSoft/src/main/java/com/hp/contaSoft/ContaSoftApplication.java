@@ -5,11 +5,13 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.web.servlet.support.SpringBootServletInitializer;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import com.hp.contaSoft.configuration.FileStorageProperties;
 
 
 @SpringBootApplication()
+@EnableScheduling
 @EnableConfigurationProperties({
     FileStorageProperties.class
 })
