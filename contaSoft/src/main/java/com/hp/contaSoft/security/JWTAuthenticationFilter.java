@@ -53,7 +53,7 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
             
             //Experimento
             //CurrentUser current = new CurrentUser(creds.getUsername(), creds.getPassword(), "asd", new ArrayList<>());
-            CurrentUser current = new CurrentUser(new AppUser(creds.getUsername(), creds.getPassword()),"");
+            CurrentUser current = new CurrentUser(new AppUser(creds.getUsername(), creds.getPassword()), "", new ArrayList<>());
             
             return authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -73,18 +73,16 @@ public class JWTAuthenticationFilter extends UsernamePasswordAuthenticationFilte
                                             FilterChain chain,
                                             Authentication auth) throws IOException, ServletException {
 
-    	/*
-    	 * 0. The client has autenticated successfully so, i shoul load the family Id
-    	 * 
-    	 */
-    	
-    	
+    	CurrentUser principal = (CurrentUser) auth.getPrincipal();
+    	int roleValue = (principal.getUser().getRole() != null) ? principal.getUser().getRole().getRole() : 2;
+
         String token = JWT.create()
-                .withSubject(((CurrentUser) auth.getPrincipal()).getUsername())
+                .withSubject(principal.getUsername())
                 .withExpiresAt(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .withIssuer(((CurrentUser) auth.getPrincipal()).getUsername())
-                .withClaim("family", ((CurrentUser) auth.getPrincipal()).getFamilId())
-                .withClaim("name", ((CurrentUser) auth.getPrincipal()).getUsername())
+                .withIssuer(principal.getUsername())
+                .withClaim("family", principal.getFamilId())
+                .withClaim("name", principal.getUsername())
+                .withClaim("role", roleValue)
                 .sign(HMAC512(SECRET.getBytes()));
         System.out.println(((CurrentUser) auth.getPrincipal()).getUsername());
         System.out.println("TOKEN:"+token);

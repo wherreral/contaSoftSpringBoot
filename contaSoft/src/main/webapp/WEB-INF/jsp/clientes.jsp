@@ -450,6 +450,17 @@
         loadSidebar('clientes');
     </script>
 
+    <script>
+        // Role-based UI
+        const isAdmin = parseInt(localStorage.getItem('userRole') || '2') === 1;
+        if (!isAdmin) {
+            var btnNuevo = document.getElementById('btnNuevoCliente');
+            if (btnNuevo) btnNuevo.style.display = 'none';
+            var emptyBtn = document.querySelector('.empty-state .btn-primary');
+            if (emptyBtn) emptyBtn.style.display = 'none';
+        }
+    </script>
+
     <!-- Custom JavaScript -->
     <script>
         // Cliente Management
@@ -650,9 +661,9 @@
                     '<td>' + sucursales + '</td>' +
                     '<td>' + representante + '</td>' +
                     '<td class="text-center">' +
-                        '<button class="btn btn-sm btn-primary btn-action" onclick="editarCliente(' + id + ')">' +
+                        (isAdmin ? '<button class="btn btn-sm btn-primary btn-action" onclick="editarCliente(' + id + ')">' +
                             '<i class="bi bi-pencil-fill"></i> Editar' +
-                        '</button> ' +
+                        '</button> ' : '') +
                         '<a href="/charges?id=' + id + '" class="btn btn-sm btn-success btn-action">' +
                             '<i class="bi bi-upload"></i> Cargas' +
                         '</a>' +

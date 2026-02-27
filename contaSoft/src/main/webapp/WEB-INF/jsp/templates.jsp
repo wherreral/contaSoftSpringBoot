@@ -466,6 +466,14 @@
 		loadSidebar('templates');
 	</script>
 
+	<script>
+		const isAdmin = parseInt(localStorage.getItem('userRole') || '2') === 1;
+		if (!isAdmin) {
+			document.querySelectorAll('.btn-primary').forEach(function(btn) {
+				if (btn.textContent.trim().includes('Nuevo Template')) btn.style.display = 'none';
+			});
+		}
+	</script>
 	<!-- JavaScript de la aplicación -->
     <script>
         // Configuración de la API
@@ -592,7 +600,7 @@
                             <p class="text-muted small">${template.description || 'Sin descripción'}</p>
                             <p class="mb-3"><strong>${fieldCount}</strong> campos mapeados</p>
                             
-                            <div class="btn-group w-100" role="group">
+                            <div class="btn-group w-100 admin-only" role="group">
                                 <button class="btn btn-sm btn-outline-primary" onclick="editTemplate(${template.id})">
                                     <i class="bi bi-pencil"></i> Editar
                                 </button>
@@ -613,8 +621,13 @@
                 
                 grid.innerHTML += card;
             });
+
+            // Hide admin-only elements for non-admin users
+            if (!isAdmin) {
+                document.querySelectorAll('.admin-only').forEach(function(el) { el.style.display = 'none'; });
+            }
         }
-        
+
         // Renderizar biblioteca de campos
         function renderFieldLibrary() {
             const requiredContainer = document.getElementById('required-fields');

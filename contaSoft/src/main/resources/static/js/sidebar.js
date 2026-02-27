@@ -1,4 +1,17 @@
 function loadSidebar(activeItem) {
+    const userRole = parseInt(localStorage.getItem('userRole') || '2');
+    const isAdmin = (userRole === 1);
+
+    const adminSection = isAdmin ? `
+                <div class="sidebar-section-title mt-3">Administraci&oacute;n</div>
+                <a href="/usuarios" class="sidebar-menu-item ${activeItem === 'usuarios' ? 'active' : ''}">
+                    <i class="bi bi-person-gear"></i>Usuarios
+                </a>
+                <a href="/configuracion" class="sidebar-menu-item ${activeItem === 'configuracion' ? 'active' : ''}">
+                    <i class="bi bi-gear-fill"></i>Configuraci&oacute;n
+                </a>
+    ` : '';
+
     const sidebarHTML = `
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
@@ -9,10 +22,10 @@ function loadSidebar(activeItem) {
                     <i class="bi bi-calculator-fill me-2"></i>
                     ContaSoft
                 </h4>
-                <small>Sistema de Gestión</small>
+                <small>Sistema de Gesti&oacute;n</small>
             </div>
             <div class="sidebar-menu">
-                <div class="sidebar-section-title">Gestión Principal</div>
+                <div class="sidebar-section-title">Gesti&oacute;n Principal</div>
                 <a href="/" class="sidebar-menu-item ${activeItem === 'inicio' ? 'active' : ''}">
                     <i class="bi bi-house-fill"></i>Inicio
                 </a>
@@ -32,10 +45,8 @@ function loadSidebar(activeItem) {
                 <a href="/importar" class="sidebar-menu-item ${activeItem === 'importar' ? 'active' : ''}">
                     <i class="bi bi-upload"></i>Importar Datos
                 </a>
+                ${adminSection}
                 <div class="sidebar-section-title mt-3">Sistema</div>
-                <a href="/configuracion" class="sidebar-menu-item ${activeItem === 'configuracion' ? 'active' : ''}">
-                    <i class="bi bi-gear-fill"></i>Configuración
-                </a>
                 <a href="/ayuda" class="sidebar-menu-item ${activeItem === 'ayuda' ? 'active' : ''}">
                     <i class="bi bi-question-circle-fill"></i>Ayuda
                 </a>

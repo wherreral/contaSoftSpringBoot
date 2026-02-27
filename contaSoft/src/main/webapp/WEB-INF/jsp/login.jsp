@@ -218,6 +218,7 @@
                     localStorage.removeItem('jwtToken');
                     localStorage.removeItem('username');
                     localStorage.removeItem('familyId');
+                    localStorage.removeItem('userRole');
                     document.cookie = 'JWT_TOKEN=; path=/; max-age=0';
                 }
 
@@ -324,6 +325,7 @@
                     const tokenPayload = JSON.parse(atob(token.split('.')[1]));
                     localStorage.setItem('username', tokenPayload.name);
                     localStorage.setItem('familyId', tokenPayload.family);
+                    localStorage.setItem('userRole', tokenPayload.role || 2);
                     
                     // Set cookie so browser navigations carry the token
                     const maxAge = Math.floor((tokenPayload.exp * 1000 - Date.now()) / 1000);

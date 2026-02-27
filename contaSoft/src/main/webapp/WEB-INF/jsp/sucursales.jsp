@@ -214,7 +214,7 @@
                 <h2 class="mb-0"><i class="bi bi-shop me-2"></i>Gestión de Sucursales</h2>
                 <p class="text-muted">Administra los centros de costo de tus clientes</p>
             </div>
-            <div class="col-auto">
+            <div class="col-auto admin-only">
                 <button class="btn btn-gradient" data-bs-toggle="modal" data-bs-target="#subsidiaryModal" onclick="resetForm()">
                     <i class="bi bi-plus-circle me-2"></i>Nueva Sucursal
                 </button>
@@ -276,12 +276,12 @@
                                             ${subsidiary.taxpayer.rut} - ${subsidiary.taxpayer.name}
                                         </c:if>
                                     </td>
-                                    <td>
-                                        <button class="btn btn-sm btn-outline-primary" 
-                                            onclick="editSubsidiary(${subsidiary.id}, 
-                                                '${subsidiary.name}', 
-                                                '${subsidiary.nickname != null ? subsidiary.nickname : ''}', 
-                                                '${subsidiary.address != null ? subsidiary.address : ''}', 
+                                    <td class="admin-only">
+                                        <button class="btn btn-sm btn-outline-primary"
+                                            onclick="editSubsidiary(${subsidiary.id},
+                                                '${subsidiary.name}',
+                                                '${subsidiary.nickname != null ? subsidiary.nickname : ''}',
+                                                '${subsidiary.address != null ? subsidiary.address : ''}',
                                                 ${subsidiary.taxpayer.id})">
                                             <i class="bi bi-pencil"></i>
                                         </button>
@@ -355,6 +355,12 @@
 		loadSidebar('sucursales');
 	</script>
 
+    <script>
+        const isAdmin = parseInt(localStorage.getItem('userRole') || '2') === 1;
+        if (!isAdmin) {
+            document.querySelectorAll('.admin-only').forEach(function(el) { el.style.display = 'none'; });
+        }
+    </script>
     <script>
         function filterByClient(clientId) {
             if (clientId) {

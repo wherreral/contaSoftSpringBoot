@@ -48,9 +48,18 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers(HttpMethod.GET, "/home").permitAll()
                 // Static resources
                 .antMatchers("/css/**", "/js/**", "/images/**", "/webjars/**", "/favicon.ico").permitAll()
-                // API de clientes - requiere autenticación para multi-tenancy
+                // API de usuarios - solo ADMIN
+                .antMatchers("/api/ui/usuarios/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.GET, "/usuarios").hasRole("ADMIN")
+                // API de clientes - escritura solo ADMIN, lectura autenticado
+                .antMatchers(HttpMethod.POST, "/api/ui/clientes/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.PUT, "/api/ui/clientes/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.DELETE, "/api/ui/clientes/**").hasRole("ADMIN")
                 .antMatchers("/api/ui/clientes/**").authenticated()
-                // API de templates - requiere autenticación para multi-tenancy
+                // API de templates - escritura solo ADMIN, lectura autenticado
+                .antMatchers(HttpMethod.POST, "/api/templates/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.PUT, "/api/templates/**").hasRole("ADMIN")
+                .antMatchers(HttpMethod.DELETE, "/api/templates/**").hasRole("ADMIN")
                 .antMatchers("/api/templates/**").authenticated()
                 // API de AFP - datos globales permitidos, nicknames requieren auth
                 .antMatchers("/api/ui/afp/*/nickname").authenticated()
@@ -93,6 +102,16 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                             response.getWriter().write("{\"success\":false,\"message\":\"No autenticado. Por favor inicie sesión.\"}");
                         } else {
                             response.sendRedirect("/login?expired=true");
+                        }
+                    })
+                    .accessDeniedHandler((request, response, accessDeniedException) -> {
+                        String requestURI = request.getRequestURI();
+                        if (requestURI.startsWith("/api/")) {
+                            response.setStatus(403);
+                            response.setContentType("application/json");
+                            response.getWriter().write("{\"success\":false,\"message\":\"No tienes permisos para realizar esta accion.\"}");
+                        } else {
+                            response.sendRedirect("/");
                         }
                     });
     }

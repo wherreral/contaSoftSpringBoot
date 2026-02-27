@@ -44,8 +44,10 @@ public class UserDetailsServiceImpl implements UserDetailsService{
         //return buildUserForAuthentication(applicationUser, authorities);
         
         //return new User(applicationUser.getUsername(), applicationUser.getPassword(), Collections.emptyList());
+        Integer roleValue = (applicationUser.getRole() != null) ? applicationUser.getRole().getRole() : 2;
+        Collection<? extends GrantedAuthority> authorities = getAuthorities(roleValue);
         return new CurrentUser(
-        		applicationUser, applicationUser.getGroupCredentials().getGcId());
+        		applicationUser, applicationUser.getGroupCredentials().getGcId(), authorities);
     }
 	
     public Collection<? extends GrantedAuthority> getAuthorities(Integer role) {
