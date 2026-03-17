@@ -363,10 +363,8 @@
                 <div class="card">
                     <div class="card-header bg-gradient text-white d-flex justify-content-between align-items-center" style="background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);">
                         <h5 class="mb-0"><i class="bi bi-list me-2"></i>Gestión de Varios</h5>
-                        <!-- System parameters are global and read-only; hide create button -->
-                        <button class="btn btn-light btn-sm" disabled title="Parámetros del sistema - solo lectura">
-                            <i class="bi bi-lock-fill me-1"></i>Solo lectura
-                        </button>
+                        <!-- System parameters: editable by admin -->
+                        <span class="badge bg-light text-dark"><i class="bi bi-info-circle me-1"></i>Solo admins pueden editar</span>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -1051,7 +1049,8 @@
             fetch(url, {
                 method: method,
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(data)
             })

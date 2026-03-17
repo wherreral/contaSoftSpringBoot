@@ -32,6 +32,7 @@
     <!-- Datos básicos del trabajador -->
     <field name="id" class="java.lang.Long"/>
     <field name="rut" class="java.lang.String"/>
+    <field name="nombreTrabajador" class="java.lang.String"/>
     <field name="centroCosto" class="java.lang.String"/>
     <field name="diasTrabajados" class="java.lang.Integer"/>
     <field name="prevision" class="java.lang.String"/>
@@ -82,6 +83,9 @@
     <!-- Aportes empleador -->
     <field name="afcEmpleador" class="java.lang.Double"/>
     <field name="sisEmpleador" class="java.lang.Double"/>
+    <field name="cotCapitalizacion" class="java.lang.Double"/>
+    <field name="cotRentabilidadProtegida" class="java.lang.Double"/>
+    <field name="cotExpectativasVidaSis" class="java.lang.Double"/>
 
     <!-- Totales calculados por registro -->
     <field name="totalRemuneracionNoImponible" class="java.lang.Double"/>
@@ -108,7 +112,7 @@
     <!-- DETAIL - LIQUIDACIÓN COMPLETA POR REGISTRO   -->
     <!-- ============================================ -->
     <detail>
-        <band height="610" splitType="Prevent">
+        <band height="655" splitType="Prevent">
 
             <!-- ========== HEADER EMPRESA ========== -->
             <textField isBlankWhenNull="true">
@@ -183,7 +187,7 @@
             <textField isBlankWhenNull="true">
                 <reportElement x="65" y="100" width="250" height="12" uuid="a1b2c3d4-0001-0001-0001-000000000012"/>
                 <textElement><font size="8" isBold="true"/></textElement>
-                <textFieldExpression><![CDATA[$F{rut}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$F{nombreTrabajador}]]></textFieldExpression>
             </textField>
             <staticText>
                 <reportElement x="5" y="115" width="60" height="12" uuid="a1b2c3d4-0001-0001-0001-000000000013"/>
@@ -253,7 +257,7 @@
             <textField pattern="#,##0">
                 <reportElement x="145" y="185" width="80" height="12" uuid="a1b2c3d4-0001-0001-0001-000000000022"/>
                 <textElement textAlignment="Right"><font size="8" isBold="true"/></textElement>
-                <textFieldExpression><![CDATA[$F{sueldoBase}]]></textFieldExpression>
+                <textFieldExpression><![CDATA[$F{sueldoMensual}]]></textFieldExpression>
             </textField>
             
             <!-- Gratificación -->
@@ -623,15 +627,51 @@
                 <text><![CDATA[0.000]]></text>
             </staticText>
 
+            <!-- Cot. Capitalización Individual (Ley 21.735) -->
+            <staticText>
+                <reportElement x="255" y="470" width="190" height="12" uuid="a1b2c3d4-0002-0001-0001-000000000010"/>
+                <textElement><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Cot. Capitalización Ind.]]></text>
+            </staticText>
+            <textField pattern="#,##0">
+                <reportElement x="445" y="470" width="105" height="12" uuid="a1b2c3d4-0002-0001-0001-000000000011"/>
+                <textElement textAlignment="Right"><font size="8" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$F{cotCapitalizacion}]]></textFieldExpression>
+            </textField>
+
+            <!-- Cot. Rentabilidad Protegida FAPP (Ley 21.735) -->
+            <staticText>
+                <reportElement x="255" y="485" width="190" height="12" uuid="a1b2c3d4-0002-0001-0001-000000000012"/>
+                <textElement><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Cot. Rentab. Protegida]]></text>
+            </staticText>
+            <textField pattern="#,##0">
+                <reportElement x="445" y="485" width="105" height="12" uuid="a1b2c3d4-0002-0001-0001-000000000013"/>
+                <textElement textAlignment="Right"><font size="8" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$F{cotRentabilidadProtegida}]]></textFieldExpression>
+            </textField>
+
+            <!-- Cot. Exp. Vida y SIS FAPP (Ley 21.735) -->
+            <staticText>
+                <reportElement x="255" y="500" width="190" height="12" uuid="a1b2c3d4-0002-0001-0001-000000000014"/>
+                <textElement><font size="8" isBold="true"/></textElement>
+                <text><![CDATA[Cot. Exp. Vida y SIS]]></text>
+            </staticText>
+            <textField pattern="#,##0">
+                <reportElement x="445" y="500" width="105" height="12" uuid="a1b2c3d4-0002-0001-0001-000000000015"/>
+                <textElement textAlignment="Right"><font size="8" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[$F{cotExpectativasVidaSis}]]></textFieldExpression>
+            </textField>
+
             <!-- TOTAL COSTO EMPLEADOR -->
             <staticText>
-                <reportElement x="255" y="475" width="190" height="15" uuid="a1b2c3d4-0002-0001-0001-000000000008"/>
+                <reportElement x="255" y="520" width="190" height="15" uuid="a1b2c3d4-0002-0001-0001-000000000008"/>
                 <box><topPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/></box>
                 <textElement verticalAlignment="Middle"><font size="11" isBold="true"/></textElement>
                 <text><![CDATA[TOTAL COSTO EMPLEADOR]]></text>
             </staticText>
             <textField pattern="#,##0">
-                <reportElement x="445" y="475" width="105" height="15" uuid="a1b2c3d4-0002-0001-0001-000000000009"/>
+                <reportElement x="445" y="520" width="105" height="15" uuid="a1b2c3d4-0002-0001-0001-000000000009"/>
                 <box><topPen lineWidth="1.0"/><bottomPen lineWidth="1.0"/></box>
                 <textElement textAlignment="Right" verticalAlignment="Middle"><font size="11" isBold="true"/></textElement>
                 <textFieldExpression><![CDATA[$F{totalCostoEmpleador}]]></textFieldExpression>
@@ -639,13 +679,13 @@
 
             <!-- ========== LIQUIDO A PAGAR ========== -->
             <staticText>
-                <reportElement x="5" y="500" width="140" height="20" uuid="a1b2c3d4-0001-0001-0001-000000000072"/>
+                <reportElement x="5" y="545" width="140" height="20" uuid="a1b2c3d4-0001-0001-0001-000000000072"/>
                 <box><topPen lineWidth="2.0"/><bottomPen lineWidth="2.0"/></box>
                 <textElement verticalAlignment="Middle"><font size="11" isBold="true"/></textElement>
                 <text><![CDATA[LIQUIDO A PAGAR]]></text>
             </staticText>
             <textField pattern="#,##0">
-                <reportElement x="145" y="500" width="80" height="20" uuid="a1b2c3d4-0001-0001-0001-000000000073"/>
+                <reportElement x="145" y="545" width="80" height="20" uuid="a1b2c3d4-0001-0001-0001-000000000073"/>
                 <box><topPen lineWidth="2.0"/><bottomPen lineWidth="2.0"/></box>
                 <textElement textAlignment="Right" verticalAlignment="Middle"><font size="11" isBold="true"/></textElement>
                 <textFieldExpression><![CDATA[$F{liquidoAPagar}]]></textFieldExpression>
@@ -653,12 +693,12 @@
 
             <!-- Son: monto en palabras -->
             <staticText>
-                <reportElement x="5" y="530" width="50" height="12" uuid="a1b2c3d4-0001-0001-0001-000000000074"/>
+                <reportElement x="5" y="575" width="50" height="12" uuid="a1b2c3d4-0001-0001-0001-000000000074"/>
                 <textElement><font size="8" isBold="true"/></textElement>
                 <text><![CDATA[Son        :]]></text>
             </staticText>
             <textField isBlankWhenNull="true">
-                <reportElement x="55" y="530" width="400" height="12" uuid="a1b2c3d4-0001-0001-0001-000000000075"/>
+                <reportElement x="55" y="575" width="400" height="12" uuid="a1b2c3d4-0001-0001-0001-000000000075"/>
                 <textElement><font size="8" isBold="true"/></textElement>
                 <textFieldExpression><![CDATA[$F{liquidoEnPalabras}]]></textFieldExpression>
             </textField>
@@ -696,6 +736,11 @@
                 <textElement><font size="8" isBold="true"/></textElement>
                 <text><![CDATA[Fecha de Emisión:]]></text>
             </staticText>
+            <textField>
+                <reportElement x="80" y="60" width="80" height="12" uuid="a1b2c3d4-0001-0001-0001-000000000085"/>
+                <textElement><font size="8" isBold="true"/></textElement>
+                <textFieldExpression><![CDATA[new java.text.SimpleDateFormat("dd/MM/yyyy").format(new java.util.Date())]]></textFieldExpression>
+            </textField>
 
             <!-- Línea de firma -->
             <line>

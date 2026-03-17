@@ -152,7 +152,7 @@
         
         .table-header {
             background: var(--table-header-bg);
-            color: var(--bg-card);
+            color: #ffffff;
             padding: 1.5rem;
         }
         
@@ -257,32 +257,18 @@
     <div id="navbar-container"></div>
 
     <div class="container-fluid px-4">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5 class="mb-0 text-secondary fw-normal">
-                        <i class="bi bi-people-fill me-2"></i>
-                        Gestión de Clientes
-                    </h5>
-                </div>
-                <div class="col-md-6 text-end">
-                    <button class="btn btn-primary" id="btnNuevoCliente">
-                        <i class="bi bi-plus-circle me-2"></i>
-                        Nuevo Cliente
-                    </button>
-                </div>
-            </div>
-        </div>
-
         <!-- Clients Table -->
         <div class="client-table-card">
-            <div class="table-header">
-                <h5 class="mb-0">
+            <div class="table-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0" style="cursor:pointer" onclick="window.location.href='/clientes'" title="Ver todos los clientes">
                     <i class="bi bi-table me-2"></i>
                     Lista de Clientes
                     <span class="badge bg-light text-dark ms-2" id="totalClientes">0</span>
                 </h5>
+                <button class="btn btn-primary" id="btnNuevoCliente">
+                    <i class="bi bi-plus-circle me-2"></i>
+                    Nuevo Cliente
+                </button>
             </div>
             
             <!-- Loading Spinner -->
@@ -406,6 +392,22 @@
                             </div>
                         </div>
                         
+                        <!-- Régimen -->
+                        <div class="section-divider">
+                            <i class="bi bi-briefcase me-1"></i>
+                            Régimen
+                        </div>
+
+                        <div class="row mb-2">
+                            <div class="col-md-6">
+                                <label for="regimen" class="form-label required-field">Régimen</label>
+                                <select class="form-select" id="regimen" required>
+                                    <option value="INDEFINIDO">Indefinido</option>
+                                    <option value="PLAZO_FIJO">Plazo Fijo</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <!-- Representante Legal -->
                         <div class="section-divider">
                             <i class="bi bi-person-badge me-1"></i>
@@ -438,6 +440,59 @@
         </div>
     </div>
 
+    <!-- Modal Sucursales -->
+    <div class="modal fade" id="sucursalModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="sucursalModalLabel">
+                        <i class="bi bi-building me-2"></i>
+                        Sucursales
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Lista de sucursales existentes -->
+                    <div id="listaSucursales" class="mb-3"></div>
+
+                    <!-- Formulario nueva sucursal -->
+                    <div class="section-divider">
+                        <i class="bi bi-plus-circle me-1"></i>
+                        Nueva Sucursal
+                    </div>
+                    <form id="sucursalForm">
+                        <input type="hidden" id="sucursalTaxpayerId">
+                        <div class="row mb-2">
+                            <div class="col-md-4">
+                                <label for="sucursalNombre" class="form-label required-field">Nombre</label>
+                                <input type="text" class="form-control" id="sucursalNombre" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="sucursalNickname" class="form-label">Alias</label>
+                                <input type="text" class="form-control" id="sucursalNickname">
+                            </div>
+                            <div class="col-md-4">
+                                <label for="sucursalDireccion" class="form-label">Dirección</label>
+                                <input type="text" class="form-control" id="sucursalDireccion">
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <button type="button" class="btn btn-primary btn-sm" id="btnGuardarSucursal">
+                                <i class="bi bi-plus-circle me-1"></i> Agregar Sucursal
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-circle me-2"></i>
+                        Cerrar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -448,6 +503,11 @@
     <script>
         loadNavbar('clientes');
         loadSidebar('clientes');
+    </script>
+    <script>
+        window.APP_CONFIG = {
+            API_BASE_URL: '<%= request.getAttribute("apiBaseUrl") != null ? request.getAttribute("apiBaseUrl") : "" %>'
+        };
     </script>
 
     <script>
@@ -464,7 +524,7 @@
     <!-- Custom JavaScript -->
     <script>
         // Cliente Management
-        const API_BASE_URL = 'http://localhost:8080/api/ui/clientes';
+        const API_BASE_URL = (window.APP_CONFIG.API_BASE_URL || '').replace(/\/$/, '') + '/api/ui/clientes';
         let clienteModal;
         let isEditMode = false;
         let currentClienteId = null;
@@ -573,7 +633,7 @@
         }
         
         function loadSingleCliente(clientId) {
-            console.log('Fetching client from API:', `${API_BASE_URL}/${clientId}`);
+            console.log('Fetching client from API:', API_BASE_URL + '/' + clientId);
             showLoading();
             let URL = API_BASE_URL+"/"+clientId;
             console.log('URL:', URL);
@@ -666,7 +726,10 @@
                         '</button> ' : '') +
                         '<a href="/charges?id=' + id + '" class="btn btn-sm btn-success btn-action">' +
                             '<i class="bi bi-upload"></i> Cargas' +
-                        '</a>' +
+                        '</a> ' +
+                        '<button class="btn btn-sm btn-info btn-action text-white" onclick="abrirSucursales(' + id + ', \'' + name.replace(/'/g, "\\'") + '\')">' +
+                            '<i class="bi bi-building"></i> Sucursales' +
+                        '</button>' +
                     '</td>';
                 tbody.appendChild(tr);
             });
@@ -696,7 +759,8 @@
                         document.getElementById('clienteId').value = cliente.id;
                         document.getElementById('razonSocial').value = cliente.name || '';
                         document.getElementById('rutCliente').value = cliente.rut || '';
-                        
+                        document.getElementById('regimen').value = cliente.regimen || 'INDEFINIDO';
+
                         // Cargar dirección
                         if (cliente.address && cliente.address.length > 0) {
                             const addr = cliente.address[0];
@@ -735,6 +799,7 @@
             const clienteData = {
                 razonSocial: document.getElementById('razonSocial').value,
                 rutCliente: document.getElementById('rutCliente').value,
+                regimen: document.getElementById('regimen').value,
                 direccion: {
                     region: document.getElementById('region').value,
                     comuna: document.getElementById('comuna').value,
@@ -745,22 +810,43 @@
                 rutRepresentante: document.getElementById('rutRepresentante').value
             };
             
-            const url = isEditMode ? `${API_BASE_URL}/${currentClienteId}` : API_BASE_URL;
+            const url = isEditMode ? API_BASE_URL + '/' + currentClienteId : API_BASE_URL;
             const method = isEditMode ? 'PUT' : 'POST';
-            
+
+            console.log('Guardar cliente - URL:', url, 'Method:', method, 'isEditMode:', isEditMode, 'currentClienteId:', currentClienteId);
+
             fetch(url, {
                 method: method,
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify(clienteData)
             })
-            .then(response => response.json())
-            .then(data => {
+            .then(response => {
+                console.log('Guardar cliente - Response status:', response.status, 'URL:', response.url);
+                return response.text();
+            })
+            .then(text => {
+                console.log('Guardar cliente - Response body:', text);
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch(e) {
+                    console.log('Respuesta no-JSON al guardar cliente:', text);
+                    data = { success: false, message: 'Respuesta inesperada del servidor' };
+                }
                 if (data.success) {
                     clienteModal.hide();
                     showSuccess(data.message);
-                    loadClientes();
+                    // Respetar filtro de URL si existe
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const clientId = urlParams.get('id');
+                    if (clientId) {
+                        loadSingleCliente(clientId);
+                    } else {
+                        loadClientes();
+                    }
                 } else {
                     showError(data.message || 'Error al guardar cliente');
                 }
@@ -787,6 +873,132 @@
         
         function showError(message) {
             alert('✗ ' + message);
+        }
+
+        // ===== SUCURSALES =====
+        let sucursalModal;
+        let currentSucursalTaxpayerId = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            sucursalModal = new bootstrap.Modal(document.getElementById('sucursalModal'));
+            document.getElementById('btnGuardarSucursal').addEventListener('click', guardarSucursal);
+        });
+
+        function abrirSucursales(taxpayerId, clienteName) {
+            currentSucursalTaxpayerId = taxpayerId;
+            document.getElementById('sucursalTaxpayerId').value = taxpayerId;
+            document.getElementById('sucursalModalLabel').innerHTML = '<i class="bi bi-building me-2"></i>Sucursales - ' + clienteName;
+            document.getElementById('sucursalForm').reset();
+            cargarSucursales(taxpayerId);
+            sucursalModal.show();
+        }
+
+        function cargarSucursales(taxpayerId) {
+            const listDiv = document.getElementById('listaSucursales');
+            listDiv.innerHTML = '<div class="text-center"><div class="spinner-border spinner-border-sm text-primary"></div></div>';
+
+            fetch('/sucursales/byTaxpayer?taxpayerId=' + taxpayerId, {
+                headers: { 'Accept': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!Array.isArray(data) || data.length === 0) {
+                    listDiv.innerHTML = '<p class="text-muted text-center mb-0">No hay sucursales registradas</p>';
+                    return;
+                }
+                let html = '<table class="table table-sm table-bordered mb-0">' +
+                    '<thead><tr><th>ID</th><th>Nombre</th><th>Alias</th><th>Dirección</th><th>Acciones</th></tr></thead><tbody>';
+                data.forEach(function(s) {
+                    html += '<tr>' +
+                        '<td>' + (s.subsidiaryId || '') + '</td>' +
+                        '<td>' + (s.name || '') + '</td>' +
+                        '<td>' + (s.nickname || '-') + '</td>' +
+                        '<td>' + (s.address || '-') + '</td>' +
+                        '<td><button class="btn btn-sm btn-danger" onclick="eliminarSucursal(' + s.id + ')">' +
+                            '<i class="bi bi-trash"></i></button></td>' +
+                    '</tr>';
+                });
+                html += '</tbody></table>';
+                listDiv.innerHTML = html;
+            })
+            .catch(error => {
+                console.error('Error cargando sucursales:', error);
+                listDiv.innerHTML = '<p class="text-danger text-center">Error al cargar sucursales</p>';
+            });
+        }
+
+        function guardarSucursal() {
+            const form = document.getElementById('sucursalForm');
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            const params = new URLSearchParams();
+            params.append('name', document.getElementById('sucursalNombre').value);
+            params.append('nickname', document.getElementById('sucursalNickname').value);
+            params.append('address', document.getElementById('sucursalDireccion').value);
+            params.append('taxpayerId', document.getElementById('sucursalTaxpayerId').value);
+
+            fetch('/sucursales/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                body: params.toString()
+            })
+            .then(response => response.text())
+            .then(text => {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch(e) {
+                    console.log('Respuesta no-JSON:', text);
+                    data = { success: true };
+                }
+                if (data.success) {
+                    document.getElementById('sucursalForm').reset();
+                    cargarSucursales(currentSucursalTaxpayerId);
+                    loadClientes();
+                } else {
+                    showError(data.message || 'Error al crear sucursal');
+                }
+            })
+            .catch(error => {
+                console.error('Error guardar sucursal:', error);
+                showError('Error de conexión al crear sucursal');
+            });
+        }
+
+        function eliminarSucursal(id) {
+            if (!confirm('¿Está seguro de eliminar esta sucursal?')) return;
+
+            const params = new URLSearchParams();
+            params.append('id', id);
+
+            fetch('/sucursales/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+                body: params.toString()
+            })
+            .then(response => response.text())
+            .then(text => {
+                let data;
+                try {
+                    data = JSON.parse(text);
+                } catch(e) {
+                    console.log('Respuesta no-JSON:', text);
+                    data = { success: true };
+                }
+                if (data.success) {
+                    cargarSucursales(currentSucursalTaxpayerId);
+                    loadClientes();
+                } else {
+                    showError(data.message || 'Error al eliminar sucursal');
+                }
+            })
+            .catch(error => {
+                console.error('Error eliminar sucursal:', error);
+                showError('Error de conexión al eliminar sucursal');
+            });
         }
     </script>
 </body>

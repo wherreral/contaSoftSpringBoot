@@ -61,10 +61,30 @@ public class SystemParameterRestController {
 
     @PutMapping(path = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<?> update(@PathVariable Long id, @RequestBody SystemParameter param) {
-        Map<String, Object> error = new HashMap<>();
-        error.put("success", false);
-        error.put("message", "Operación no permitida: parametros del sistema son de solo lectura");
-        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(error);
+        Map<String, Object> response = new HashMap<>();
+        try {
+            java.util.Optional<SystemParameter> opt = service.findById(id);
+            if (!opt.isPresent()) {
+                response.put("success", false);
+                response.put("message", "Parámetro no encontrado");
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+            }
+            SystemParameter existing = opt.get();
+            existing.setValue(param.getValue());
+            if (param.getDescription() != null) {
+                existing.setDescription(param.getDescription());
+            }
+            service.save(existing);
+            response.put("success", true);
+            response.put("message", "Parámetro actualizado exitosamente");
+            response.put("data", existing);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            logger.error("Error updating SystemParameter id={}", id, e);
+            response.put("success", false);
+            response.put("message", "Error al actualizar: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
 
     @DeleteMapping("/{id}")

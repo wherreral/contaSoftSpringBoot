@@ -579,10 +579,20 @@
                         <p>Listado de liquidaciones importadas para el cliente</p>
                     </div>
                     <div class="d-flex align-items-center gap-3">
-                        <!-- Compact Upload Widget -->
-                        <div class="upload-widget-compact">
+                        <!-- Mode Toggle -->
+                        <div class="btn-group btn-group-sm" role="group">
+                            <button type="button" class="btn btn-outline-primary active" id="modeFileBtn" onclick="switchUploadMode('file')">
+                                <i class="bi bi-file-earmark-arrow-up"></i> Archivo
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="modeTextBtn" onclick="switchUploadMode('text')">
+                                <i class="bi bi-clipboard-data"></i> Pegar Texto
+                            </button>
+                        </div>
+
+                        <!-- File Upload Widget (existing) -->
+                        <div class="upload-widget-compact" id="fileUploadMode">
                             <input type="file" id="fileInput" accept=".csv,.xls,.xlsx,.xlsm" style="display: none;" onchange="handleFileSelect(event)">
-                            
+
                             <!-- Drop Zone Compact -->
                             <div class="drop-zone-compact" id="dropZone" onclick="document.getElementById('fileInput').click()">
                                 <i class="bi bi-cloud-arrow-up drop-icon"></i>
@@ -591,7 +601,7 @@
                                     <p class="drop-formats">RUT en nombre (ej: 12345678-9.csv)</p>
                                 </div>
                             </div>
-                            
+
                             <!-- File Preview Compact -->
                             <div class="file-preview-compact" id="filePreview">
                                 <i class="bi bi-file-earmark-check file-icon" id="fileIcon"></i>
@@ -610,6 +620,41 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Text Paste Widget (new) -->
+                        <div class="upload-widget-compact" id="textUploadMode" style="display: none;">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                <select id="textRutSelect" class="form-select form-select-sm" style="width: auto; min-width: 180px;">
+                                    <option value="">Cliente...</option>
+                                    <c:forEach items="${taxpayers}" var="tp">
+                                        <option value="${tp.rut}">${tp.name} (${tp.rut})</option>
+                                    </c:forEach>
+                                </select>
+                                <select id="textMonthSelect" class="form-select form-select-sm" style="width: auto;">
+                                    <option value="">Mes...</option>
+                                    <option value="ENERO">Enero</option>
+                                    <option value="FEBRERO">Febrero</option>
+                                    <option value="MARZO">Marzo</option>
+                                    <option value="ABRIL">Abril</option>
+                                    <option value="MAYO">Mayo</option>
+                                    <option value="JUNIO">Junio</option>
+                                    <option value="JULIO">Julio</option>
+                                    <option value="AGOSTO">Agosto</option>
+                                    <option value="SEPTIEMBRE">Septiembre</option>
+                                    <option value="OCTUBRE">Octubre</option>
+                                    <option value="NOVIEMBRE">Noviembre</option>
+                                    <option value="DICIEMBRE">Diciembre</option>
+                                </select>
+                                <input type="number" id="textYearInput" class="form-control form-control-sm" style="width: 80px;" placeholder="Año" min="2020" max="2099">
+                                <button class="btn btn-success btn-sm" onclick="uploadText()" id="uploadTextBtn" disabled>
+                                    <i class="bi bi-upload"></i> Importar
+                                </button>
+                            </div>
+                            <textarea id="textPasteArea" class="form-control form-control-sm mt-2" rows="4"
+                                placeholder="Pega aquí el contenido CSV (separado por ; o tab)..."
+                                style="font-family: monospace; font-size: 0.75rem; min-width: 400px;"></textarea>
+                        </div>
+
                         <a href="/" class="back-btn">
                             <i class="bi bi-arrow-left me-1"></i> Volver al Inicio
                         </a>
@@ -758,12 +803,19 @@
                                                     data-id="${PBI.id}" title="Ver Cotizaciones">
                                                 <i class="bi bi-receipt"></i>
                                             </button>
-                                            <form method="post" action="/process" style="display: inline;">
-                                                <input type="hidden" name="id" value="${PBI.id}" />
-                                                <button type="submit" class="btn btn-outline-success btn-action" title="Procesar">
-                                                    <i class="bi bi-play-circle"></i>
-                                                </button>
-                                            </form>
+                                            <c:choose>
+                                                <c:when test="${PBI.status == 'PROCESADO'}">
+                                                    <button class="btn btn-outline-secondary btn-action" disabled title="Ya procesado">
+                                                        <i class="bi bi-check-circle"></i>
+                                                    </button>
+                                                </c:when>
+                                                <c:otherwise>
+                                                    <button class="btn btn-outline-success btn-action btn-procesar"
+                                                            data-id="${PBI.id}" title="Procesar">
+                                                        <i class="bi bi-play-circle"></i>
+                                                    </button>
+                                                </c:otherwise>
+                                            </c:choose>
                                         </td>
                                     </tr>
                                 </c:forEach>
@@ -838,6 +890,7 @@
                             <thead>
                                 <tr>
                                     <th>RUT</th>
+                                    <th>Nombre</th>
                                     <th>Centro Costo</th>
                                     <th>R&eacute;gimen</th>
                                     <th>Sueldo Base</th>
@@ -863,7 +916,6 @@
                                     <th>Valor Salud</th>
                                     <th>AFC</th>
                                     <th>TOTAL DCTO. PREVISIONAL</th>
-                                    <th><strong>Renta Líq. Imp.</strong></th>
                                     <th>IUT</th>
                                     <th>Pr&eacute;stamos</th>
                                     <th>Seg. Oncol.</th>
@@ -875,6 +927,8 @@
                                     <th><strong>TOTAL DESC. PERSONAL</strong></th>
                                     <th><strong>TOTAL DESCUENTOS</strong></th>
                                     <th><strong>ALCANCE L&Iacute;QUIDO</strong></th>
+                                    <th>Anticipos</th>
+                                    <th><strong>L&Iacute;QUIDO A PAGAR</strong></th>
                                 </tr>
                             </thead>
                             <tbody id="detallesTableBody">
@@ -984,6 +1038,7 @@
                             const row = document.createElement('tr');
                             row.innerHTML = 
                                 '<td><span class="badge badge-rut">' + (item.rut || '-') + '</span></td>' +
+                                '<td>' + (item.nombreTrabajador || '-') + '</td>' +
                                 '<td>' + (item.centroCosto || '-') + '</td>' +
                                 '<td>' + (item.regimen || '-') + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.sueldoBase) + '</td>' +
@@ -1008,8 +1063,7 @@
                                 '<td class="text-center">' + formatPercent(item.saludPorcentaje) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.valorSalud) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.valorAFC) + '</td>' +
-                                '<td class="text-money">' + formatMoney(item.totalDctoPrevisional) + '</td>' +
-                                '<td class="text-money">' + formatMoney(item.rentaLiquidaImponible) + '</td>' +
+                                '<td class="text-money fw-bold">' + formatMoney(item.totalDctoPrevisional) + '</td>' +
                                 '<td class="text-money">' + formatMoney(item.valorIUT) + '</td>' +
                                 '<td class="text-money">' + formatMoney(prestamos) + '</td>' +
                                 '<td class="text-money">' + formatMoney(segOnco) + '</td>' +
@@ -1020,7 +1074,9 @@
                                 '<td class="text-money">' + formatMoney(descSolidario) + '</td>' +
                                 '<td class="text-money">' + formatMoney(totalDctoPersonal) + '</td>' +
                                 '<td class="text-money">' + formatMoney(totalDescuentos) + '</td>' +
-                                '<td class="text-money">' + formatMoney(alcanceLiquido) + '</td>';
+                                '<td class="text-money">' + formatMoney(alcanceLiquido) + '</td>' +
+                                '<td class="text-money">' + formatMoney(anticipo) + '</td>' +
+                                '<td class="text-money fw-bold">' + formatMoney(alcanceLiquido - totalDctoPersonal) + '</td>';
                             tbody.appendChild(row);
                         });
                         
@@ -1066,6 +1122,150 @@
                     });
             });
         });
+
+        // Procesar click handler (AJAX)
+        document.querySelectorAll('.btn-procesar').forEach(function(btn) {
+            btn.addEventListener('click', async function() {
+                const id = this.getAttribute('data-id');
+                const self = this;
+
+                if (!confirm('\u00bfConfirma que desea procesar esta liquidaci\u00f3n? Esta acci\u00f3n no se puede deshacer.')) return;
+
+                self.disabled = true;
+                self.innerHTML = '<i class="bi bi-arrow-repeat"></i>';
+
+                try {
+                    const response = await fetch('/v2/process?id=' + id, {
+                        method: 'POST',
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    const data = await response.json();
+
+                    if (data.success) {
+                        // Update status badge
+                        const row = self.closest('tr');
+                        const statusCell = row.querySelector('td:nth-child(5)');
+                        if (statusCell) {
+                            statusCell.innerHTML = '<span class="status-badge status-processed"><i class="bi bi-check-circle me-1"></i>PROCESADO</span>';
+                        }
+                        // Replace button with disabled check
+                        self.className = 'btn btn-outline-secondary btn-action';
+                        self.disabled = true;
+                        self.innerHTML = '<i class="bi bi-check-circle"></i>';
+                        self.title = 'Ya procesado';
+                        alert('Liquidaci\u00f3n procesada exitosamente.');
+                    } else {
+                        alert('Error: ' + (data.message || 'No se pudo procesar'));
+                        self.disabled = false;
+                        self.innerHTML = '<i class="bi bi-play-circle"></i>';
+                    }
+                } catch (err) {
+                    console.error('Error:', err);
+                    alert('Error de conexi\u00f3n al procesar');
+                    self.disabled = false;
+                    self.innerHTML = '<i class="bi bi-play-circle"></i>';
+                }
+            });
+        });
+
+        // ===== MODE TOGGLE =====
+        function switchUploadMode(mode) {
+            const fileMode = document.getElementById('fileUploadMode');
+            const textMode = document.getElementById('textUploadMode');
+            const fileBtn = document.getElementById('modeFileBtn');
+            const textBtn = document.getElementById('modeTextBtn');
+
+            if (mode === 'text') {
+                fileMode.style.display = 'none';
+                textMode.style.display = 'block';
+                fileBtn.classList.remove('active');
+                textBtn.classList.add('active');
+            } else {
+                fileMode.style.display = '';
+                textMode.style.display = 'none';
+                fileBtn.classList.add('active');
+                textBtn.classList.remove('active');
+            }
+        }
+
+        // Enable upload button when all fields filled
+        document.addEventListener('DOMContentLoaded', function() {
+            const textArea = document.getElementById('textPasteArea');
+            const rutSelect = document.getElementById('textRutSelect');
+            const monthSelect = document.getElementById('textMonthSelect');
+            const yearInput = document.getElementById('textYearInput');
+            const uploadTextBtn = document.getElementById('uploadTextBtn');
+
+            function checkTextReady() {
+                uploadTextBtn.disabled = !(rutSelect.value && monthSelect.value && yearInput.value && textArea.value.trim());
+            }
+
+            textArea.addEventListener('input', checkTextReady);
+            rutSelect.addEventListener('change', checkTextReady);
+            monthSelect.addEventListener('change', checkTextReady);
+            yearInput.addEventListener('input', checkTextReady);
+
+            // Pre-rellenar mes y año actual
+            const meses = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+            const now = new Date();
+            monthSelect.value = meses[now.getMonth()];
+            yearInput.value = now.getFullYear();
+        });
+
+        // ===== TEXT PASTE UPLOAD =====
+        async function uploadText() {
+            const textArea = document.getElementById('textPasteArea');
+            const rutSelect = document.getElementById('textRutSelect');
+            const uploadTextBtn = document.getElementById('uploadTextBtn');
+
+            let text = textArea.value.trim();
+            const rut = rutSelect.value;
+            const month = document.getElementById('textMonthSelect').value;
+            const year = document.getElementById('textYearInput').value;
+
+            if (!text || !rut || !month || !year) {
+                alert('Complete todos los campos: cliente, mes, año y contenido');
+                return;
+            }
+
+            // Si el texto viene separado por tabs (copiado desde Excel), convertir a ;
+            if (text.includes('\t')) {
+                text = text.split('\n').map(line => line.replace(/\t/g, ';')).join('\n');
+            }
+
+            uploadTextBtn.disabled = true;
+            uploadTextBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Importando...';
+
+            try {
+                const response = await fetch('/importTextAjax', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        textContent: text,
+                        fileName: rut + '_' + month + '_' + year + '.csv'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    textArea.value = '';
+                    rutSelect.value = '';
+                    location.reload();
+                } else {
+                    alert('Error en la importación:\n\n' + (result.errorMessage || 'Error desconocido'));
+                }
+            } catch (error) {
+                console.error('Upload text error:', error);
+                alert('Error de conexión al procesar el texto:\n\n' + error.message);
+            } finally {
+                uploadTextBtn.disabled = false;
+                uploadTextBtn.innerHTML = '<i class="bi bi-upload"></i> Importar';
+            }
+        }
 
         // ===== UPLOAD WIDGET FUNCTIONALITY =====
         let selectedFile = null;

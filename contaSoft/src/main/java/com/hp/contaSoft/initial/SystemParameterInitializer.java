@@ -54,5 +54,24 @@ public class SystemParameterInitializer {
         } catch (Exception e) {
             logger.error("Error initializing SystemParameter BONO_CALCULATION_METHOD", e);
         }
+
+        // Inicializar parámetro para tasa SIS (Seguro de Invalidez y Sobrevivencia)
+        try {
+            String sisKey = "SIS_TASA";
+            List<SystemParameter> existingSis = repository.findByNameIgnoreCase(sisKey);
+            if (existingSis == null || existingSis.isEmpty()) {
+                SystemParameter p = new SystemParameter(
+                    sisKey,
+                    "1.54",
+                    "Tasa SIS (Seguro de Invalidez y Sobrevivencia) - porcentaje"
+                );
+                repository.save(p);
+                logger.info("Inserted SystemParameter {} with value {}", sisKey, p.getValue());
+            } else {
+                logger.info("SystemParameter {} already exists, skipping initialization", sisKey);
+            }
+        } catch (Exception e) {
+            logger.error("Error initializing SystemParameter SIS_TASA", e);
+        }
     }
 }

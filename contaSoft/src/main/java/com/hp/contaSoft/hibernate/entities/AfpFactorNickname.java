@@ -13,7 +13,7 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "afp_factor_nickname", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"afp_factor_id", "family_id"})
+    @UniqueConstraint(columnNames = {"afp_factor_id", "family_id", "nickname"})
 })
 @Getter
 @Setter

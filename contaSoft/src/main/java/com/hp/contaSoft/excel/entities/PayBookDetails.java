@@ -59,6 +59,10 @@ public class PayBookDetails {
 	@Column
 	@CsvBindByName(column = "RUT")
 	private String rut;
+
+	@Column
+	@CsvBindByName(column = "NOMBRE_TRABAJADOR", required = false)
+	private String nombreTrabajador;
 	
 	@Column
 	@CsvBindByName(column = "CENTRO_COSTO")
@@ -136,6 +140,9 @@ public class PayBookDetails {
 	
 	@Column
 	private double anticipo;
+
+	@Column
+	private double mutual;
 
 	@Column
 	@CsvBindByName(column = "DESC_APV_CTA_AH")
@@ -224,7 +231,25 @@ public class PayBookDetails {
 
 	@Column
 	private double sisEmpleador;
-	
+
+	@Column
+	private double cotCapitalizacion;
+
+	@Column
+	private double cotRentabilidadProtegida;
+
+	@Column
+	private double cotExpectativasVidaSis;
+
+	@javax.persistence.Transient
+	private double sisArchivoOriginal;
+
+	@javax.persistence.Transient
+	private double iutArchivoOriginal;
+
+	@javax.persistence.Transient
+	private double afcArchivoOriginal;
+
 	@JsonBackReference
 	@ManyToOne(cascade={CascadeType.ALL})
 	@JoinColumn(name="payBookInstance_id")
@@ -302,7 +327,15 @@ public class PayBookDetails {
 	}
 
 	public void calculateSeguroAccidentes() {
-		this.valorSeguroOAccidentes = 1;
+		if (this.seguroOAccidentes != null && !this.seguroOAccidentes.trim().isEmpty()) {
+			try {
+				this.valorSeguroOAccidentes = Double.parseDouble(this.seguroOAccidentes.trim().replace(",", "."));
+			} catch (NumberFormatException e) {
+				this.valorSeguroOAccidentes = 0;
+			}
+		} else {
+			this.valorSeguroOAccidentes = 0;
+		}
 	}
 
 	/**
@@ -325,10 +358,24 @@ public class PayBookDetails {
 	}
 
 	/**
+	 * Calcula cotizaciones adicionales empleador - Ley 21.735
+	 * Cada concepto se aplica sobre el total imponible.
+	 * @param tasaCap tasa cotización capitalización individual (%)
+	 * @param tasaRent tasa cotización rentabilidad protegida FAPP (%)
+	 * @param tasaExp tasa cotización expectativas de vida y SIS FAPP (%)
+	 */
+	public void calculateCotizacionesLey21735(double tasaCap, double tasaRent, double tasaExp) {
+		this.cotCapitalizacion = this.totalImponible * tasaCap / 100.0;
+		this.cotRentabilidadProtegida = this.totalImponible * tasaRent / 100.0;
+		this.cotExpectativasVidaSis = this.totalImponible * tasaExp / 100.0;
+	}
+
+	/**
 	 * Total costo empleador (transient)
 	 */
 	public double getTotalCostoEmpleador() {
-		return this.afcEmpleador + this.sisEmpleador;
+		return this.afcEmpleador + this.sisEmpleador
+			+ this.cotCapitalizacion + this.cotRentabilidadProtegida + this.cotExpectativasVidaSis;
 	}
 	
 	/**
@@ -371,6 +418,13 @@ public class PayBookDetails {
 		double afcEfectivo = (getRegimenEffective() == Regimen.PLAZO_FIJO) ? 0.0 : this.afc;
 		double totalDescuentoPorcentaje = (this.porcentajePrevision + this.saludPorcentaje + afcEfectivo) / 100.0;
 
+		// DEBUG: Log todos los valores usados en el cálculo
+		System.out.println("=== DEBUG BONO ALGEBRAICO RUT=" + this.rut + " ===");
+		System.out.println("  noImponible=" + noImponible + " (movi=" + this.movilizacion + " colac=" + this.colacion + " desg=" + this.descuentoHerramientas + " asigFam=" + this.totalAsignacionFamiliar + ")");
+		System.out.println("  baseImponibleSinBono=" + baseImponibleSinBono + " (sueldoMensual=" + this.sueldoMensual + " gratif=" + this.gratificacion + " aguinaldo=" + this.aguinaldo + " horasExtra=" + this.totalHoraExtra + ")");
+		System.out.println("  totalDescPct=" + totalDescuentoPorcentaje + " (prevision=" + this.porcentajePrevision + " salud=" + this.saludPorcentaje + " afcEfectivo=" + afcEfectivo + " regimen=" + getRegimenEffective() + " afcField=" + this.afc + ")");
+		System.out.println("  alcanceLiquidoTarget=" + alcanceLiquidoTarget);
+
 		// Fórmula algebraica directa
 		// ALCANCE_LIQUIDO = TOTAL_HABER - DCTO_PREVISIONALES
 		// TOTAL_HABER = NO_IMP + TOTAL_IMPONIBLE
@@ -387,6 +441,8 @@ public class PayBookDetails {
 		double numerador = alcanceLiquidoTarget - noImponible;
 		double denominador = 1.0 - totalDescuentoPorcentaje;
 
+		System.out.println("  numerador=" + numerador + " denominador=" + denominador);
+
 		// Validación: denominador no puede ser cero o negativo
 		if (denominador <= 0.0) {
 			System.err.println("ERROR: Porcentaje de descuentos >= 100% para RUT " + this.rut);
@@ -394,6 +450,7 @@ public class PayBookDetails {
 		}
 
 		double bonoCalculado = (numerador / denominador) - baseImponibleSinBono;
+		System.out.println("  (numerador/denominador)=" + (numerador / denominador) + " - baseImpSinBono=" + baseImponibleSinBono + " = bonoCalculado=" + bonoCalculado);
 
 		// Validación: bono no puede ser negativo (requisito del usuario)
 		if (bonoCalculado < 0.0) {

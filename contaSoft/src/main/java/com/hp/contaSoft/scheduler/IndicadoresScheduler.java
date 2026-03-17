@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -82,7 +83,10 @@ public class IndicadoresScheduler {
 	static class RestTemplateConfig {
 		@Bean
 		public RestTemplate restTemplate() {
-			return new RestTemplate();
+			SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+			factory.setConnectTimeout(10000); // 10 segundos para conectar
+			factory.setReadTimeout(15000);    // 15 segundos para leer respuesta
+			return new RestTemplate(factory);
 		}
 	}
 }

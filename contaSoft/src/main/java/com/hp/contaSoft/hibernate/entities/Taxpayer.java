@@ -52,7 +52,7 @@ public class Taxpayer extends Base {
 	@OneToMany(mappedBy="taxpayer", cascade=CascadeType.ALL)
 	private List<Subsidiary> subsidiary = new ArrayList<>();
 	
-	@JsonIgnore
+	@JsonManagedReference
 	@OneToMany(mappedBy="taxpayer", cascade=CascadeType.ALL)
 	private List<PayBookInstance> payBookInstance = new ArrayList<>();
 	
@@ -98,6 +98,22 @@ public class Taxpayer extends Base {
 		subsidiary.setTaxpayer(this);
 		this.subsidiary.add(subsidiary);
     }
+
+	public Taxpayer(String name, String rut, Address address, String familyId, Subsidiary subsidiary, String regimen) {
+		this.name = name;
+		this.rut = rut;
+		this.familyId = familyId;
+		address.setTaxpayer(this);
+		this.address.add(address);
+		subsidiary.setTaxpayer(this);
+		this.subsidiary.add(subsidiary);
+		this.regimen = Regimen.valueOf(regimen);
+	}
+
+	public void addPayBookInstance(PayBookInstance book) {
+		this.payBookInstance.add(book);
+		book.setTaxpayer(this); // Esto asegura que la FK se llene correctamente
+	}
 
     public String getName() {
 		return name;

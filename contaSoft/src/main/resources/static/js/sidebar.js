@@ -38,6 +38,9 @@ function loadSidebar(activeItem) {
                 <a href="/templates" class="sidebar-menu-item ${activeItem === 'templates' ? 'active' : ''}">
                     <i class="bi bi-file-earmark-text-fill"></i>Templates
                 </a>
+                <a href="/procesados" class="sidebar-menu-item ${activeItem === 'procesados' ? 'active' : ''}">
+                    <i class="bi bi-journal-check"></i>Procesados
+                </a>
                 <div class="sidebar-section-title mt-3">Reportes y Datos</div>
                 <a href="/charges" class="sidebar-menu-item ${activeItem === 'charges' ? 'active' : ''}">
                     <i class="bi bi-file-earmark-text"></i>Cargas

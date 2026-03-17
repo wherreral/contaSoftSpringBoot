@@ -39,15 +39,21 @@ public class ExcelParser {
 		for (int i = 0; i < headerRow.getLastCellNum(); i++) {
 			Cell cell = headerRow.getCell(i);
 			if (cell != null) {
-				String headerName = HeaderAliases.normalize(getCellAsString(cell).trim());
+				String raw = getCellAsString(cell).trim();
+				String headerName = HeaderAliases.normalize(raw);
 				if (!headerName.isEmpty()) {
 					headerMap.put(headerName, i);
+					if (!raw.equalsIgnoreCase(headerName)) {
+						System.out.println("ExcelParser header[" + i + "]: '" + raw + "' -> '" + headerName + "'");
+					}
 				}
 			}
 		}
 
 		System.out.println("=== ExcelParser headerMap: " + headerMap.keySet() + " ===");
-		System.out.println("=== Contiene ALCANCE_LIQUIDO? " + headerMap.containsKey("ALCANCE_LIQUIDO") + " ===");
+		System.out.println("=== Contiene MOVILIZACION? " + headerMap.containsKey("MOVILIZACION") + " ===");
+		System.out.println("=== Contiene COLACION? " + headerMap.containsKey("COLACION") + " ===");
+		System.out.println("=== Contiene DESGASTE? " + headerMap.containsKey("DESGASTE") + " ===");
 
 		// Procesar filas de datos (desde fila 1)
 		for (int rowIdx = 1; rowIdx <= sheet.getLastRowNum(); rowIdx++) {
@@ -69,6 +75,7 @@ public class ExcelParser {
 
 			// Campos requeridos
 			detail.setRut(getStringValue(row, headerMap, "RUT"));
+			detail.setNombreTrabajador(getStringValue(row, headerMap, "NOMBRE_TRABAJADOR"));
 			detail.setCentroCosto(getStringValue(row, headerMap, "CENTRO_COSTO"));
 			detail.setSueldoBase(getDoubleValue(row, headerMap, "SUELDO_BASE"));
 			detail.setDiasTrabajados((int) getDoubleValue(row, headerMap, "DT"));
@@ -80,17 +87,19 @@ public class ExcelParser {
 			detail.setBonoProduccion(getDoubleValue(row, headerMap, "BONO"));
 			detail.setHorasExtra(getDoubleValue(row, headerMap, "HORAS_EXTRA"));
 			detail.setAsignacionFamiliar((int) getDoubleValue(row, headerMap, "ASIG_FAMILIAR"));
-			detail.setMovilizacion(getDoubleValue(row, headerMap, "MOVILIZACION"));
-			detail.setColacion(getDoubleValue(row, headerMap, "COLACION"));
-			detail.setDescuentoHerramientas(getDoubleValue(row, headerMap, "DESGASTE"));
+			double movi = getDoubleValue(row, headerMap, "MOVILIZACION");
+			double colac = getDoubleValue(row, headerMap, "COLACION");
+			double desg = getDoubleValue(row, headerMap, "DESGASTE");
+			detail.setMovilizacion(movi);
+			detail.setColacion(colac);
+			detail.setDescuentoHerramientas(desg);
 
 			detail.setDescApvCtaAh(getDoubleValue(row, headerMap, "DESC_APV_CTA_AH"));
 			detail.setDescPtmoCcaaff(getDoubleValue(row, headerMap, "DESC_PTMO_CCAAFF"));
 			detail.setDescPtmoSolidario(getDoubleValue(row, headerMap, "DESC_PTMO_SOLIDARIO"));
 
-			if (headerMap.containsKey("AFC")) {
-				detail.setAfc(getDoubleValue(row, headerMap, "AFC"));
-			}
+			// AFC del archivo es un monto calculado, no un porcentaje.
+			// No lo seteamos como afc (porcentaje). Se guarda solo para auditoría más abajo.
 			if (headerMap.containsKey("ALCANCE_LIQUIDO")) {
 				double al = getDoubleValue(row, headerMap, "ALCANCE_LIQUIDO");
 				System.out.println("ExcelParser ALCANCE_LIQUIDO raw=" + al + " para RUT=" + detail.getRut());
@@ -100,6 +109,34 @@ public class ExcelParser {
 			}
 			if (headerMap.containsKey("REGIMEN")) {
 				detail.setRegimen(getStringValue(row, headerMap, "REGIMEN"));
+			}
+
+			// Anticipos y Mutual (campos opcionales del archivo)
+			if (headerMap.containsKey("ANTICIPOS")) {
+				detail.setAnticipo(getDoubleValue(row, headerMap, "ANTICIPOS"));
+			}
+			if (headerMap.containsKey("MUTUAL")) {
+				detail.setMutual(getDoubleValue(row, headerMap, "MUTUAL"));
+			}
+
+			// Campos calculados — guardar valor original del archivo para auditoría
+			if (headerMap.containsKey("SIS")) {
+				double sisArchivo = getDoubleValue(row, headerMap, "SIS");
+				if (sisArchivo != 0) {
+					detail.setSisArchivoOriginal(sisArchivo);
+				}
+			}
+			if (headerMap.containsKey("IUT")) {
+				double iutArchivo = getDoubleValue(row, headerMap, "IUT");
+				if (iutArchivo != 0) {
+					detail.setIutArchivoOriginal(iutArchivo);
+				}
+			}
+			if (headerMap.containsKey("AFC")) {
+				double afcArchivo = getDoubleValue(row, headerMap, "AFC");
+				if (afcArchivo != 0) {
+					detail.setAfcArchivoOriginal(afcArchivo);
+				}
 			}
 
 			result.add(detail);
@@ -127,7 +164,21 @@ public class ExcelParser {
 			case BOOLEAN:
 				return String.valueOf(cell.getBooleanCellValue());
 			case FORMULA:
-				return cell.getStringCellValue();
+				// Evaluar el valor cacheado de la fórmula
+				switch (cell.getCachedFormulaResultType()) {
+					case STRING:
+						return cell.getStringCellValue();
+					case NUMERIC:
+						double fnum = cell.getNumericCellValue();
+						if (fnum == Math.floor(fnum) && !Double.isInfinite(fnum)) {
+							return String.valueOf((long) fnum);
+						}
+						return String.valueOf(fnum);
+					case BOOLEAN:
+						return String.valueOf(cell.getBooleanCellValue());
+					default:
+						return "";
+				}
 			default:
 				return "";
 		}
@@ -146,12 +197,34 @@ public class ExcelParser {
 		Cell cell = row.getCell(idx);
 		if (cell == null) return 0.0;
 
-		switch (cell.getCellType()) {
+		CellType effectiveType = cell.getCellType();
+		if (effectiveType == CellType.FORMULA) {
+			effectiveType = cell.getCachedFormulaResultType();
+		}
+
+		switch (effectiveType) {
 			case NUMERIC:
 				return cell.getNumericCellValue();
 			case STRING:
-				String val = cell.getStringCellValue().trim().replace(",", ".");
+				String val = cell.getStringCellValue().trim();
 				if (val.isEmpty()) return 0.0;
+				// Remover símbolo de moneda y espacios
+				val = val.replace("$", "").replace(" ", "").trim();
+				if (val.equals("-") || val.equals("--") || val.isEmpty()) return 0.0;
+				if (val.contains(",") && val.contains(".")) {
+					if (val.lastIndexOf(",") > val.lastIndexOf(".")) {
+						val = val.replace(".", "").replace(",", ".");
+					} else {
+						val = val.replace(",", "");
+					}
+				} else if (val.contains(",")) {
+					String[] parts = val.split(",");
+					if (parts.length == 2 && parts[1].length() == 3) {
+						val = val.replace(",", "");
+					} else {
+						val = val.replace(",", ".");
+					}
+				}
 				return Double.parseDouble(val);
 			default:
 				return 0.0;

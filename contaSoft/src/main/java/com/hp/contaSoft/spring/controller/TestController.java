@@ -406,6 +406,98 @@ public class TestController {
     }
 	
 	
+	/**
+	 * Endpoint experimental: importar texto pegado (CSV) en vez de archivo
+	 */
+	@org.springframework.transaction.annotation.Transactional
+	@RequestMapping(value = "/importTextAjax", method = RequestMethod.POST, produces = "application/json")
+	@org.springframework.web.bind.annotation.ResponseBody
+	public java.util.Map<String, Object> handleTextUploadAjax(
+			@org.springframework.web.bind.annotation.RequestBody java.util.Map<String, String> payload,
+			Authentication authentication
+	) {
+		java.util.Map<String, Object> response = new java.util.HashMap<>();
+
+		try {
+			// Obtener familyId del usuario autenticado
+			String familyId = null;
+			if (authentication != null && authentication.isAuthenticated() && authentication.getPrincipal() instanceof CurrentUser) {
+				CurrentUser currentUser = (CurrentUser) authentication.getPrincipal();
+				familyId = currentUser.getFamilId();
+			} else {
+				response.put("success", false);
+				response.put("errorMessage", "Usuario no autenticado");
+				return response;
+			}
+
+			String textContent = payload.get("textContent");
+			String fileName = payload.get("fileName");
+
+			// Normalizar texto: quitar BOM, tildes y caracteres no-ASCII
+			if (textContent != null) {
+				textContent = textContent.replace("\uFEFF", "").replace("\uFFFD", "");
+				// Quitar tildes: á->a, é->e, ñ->n, ó->o, etc.
+				textContent = java.text.Normalizer.normalize(textContent, java.text.Normalizer.Form.NFD)
+					.replaceAll("\\p{M}", "");
+				// Eliminar cualquier caracter fuera de ASCII imprimible (mantener tabs y newlines)
+				textContent = textContent.replaceAll("[^\\x09\\x0A\\x0D\\x20-\\x7E]", "");
+			}
+
+			if (textContent == null || textContent.trim().isEmpty()) {
+				response.put("success", false);
+				response.put("errorMessage", "El contenido de texto está vacío");
+				return response;
+			}
+
+			if (fileName == null || fileName.trim().isEmpty()) {
+				response.put("success", false);
+				response.put("errorMessage", "El nombre de archivo es requerido");
+				return response;
+			}
+
+			System.out.println("Procesando texto pegado como: " + fileName);
+
+			// Convertir texto a bytes y crear streams (igual que con archivo)
+			byte[] fileBytes = textContent.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+			InputStream is = new ByteArrayInputStream(fileBytes);
+			InputStream is2 = new ByteArrayInputStream(fileBytes);
+
+			// Ejecutar el mismo pipeline
+			PipelineMessage newPipelineMessage = new PipelineMessage();
+			newPipelineMessage.setFileNameInput(fileName);
+			newPipelineMessage.setIsInput(is);
+			newPipelineMessage.setIsInput2(is2);
+			newPipelineMessage.setFamilyId(familyId);
+
+			pm.setChainName("UploadPayrollFile");
+			PipelineMessage pipelineResult = pm.execute(newPipelineMessage);
+
+			if (pipelineResult.isValid()) {
+				PayBookInstance pbiProcessed = pipelineResult.getPayBookInstance();
+				if (pbiProcessed != null && pbiProcessed.getTaxpayer() != null) {
+					response.put("success", true);
+					response.put("redirectUrl", "/charges");
+					response.put("message", "Texto importado correctamente");
+					return response;
+				}
+			} else {
+				response.put("success", false);
+				response.put("errorMessage", pipelineResult.getErrorMessageOutput());
+				return response;
+			}
+
+			response.put("success", false);
+			response.put("errorMessage", "No se pudo procesar el texto");
+			return response;
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			response.put("success", false);
+			response.put("errorMessage", "Error al procesar el texto: " + e.getMessage());
+			return response;
+		}
+	}
+
 	@RequestMapping("/importBook")
 	public String doImportBook(HttpServletRequest request, Model model) {
 		return "import";
@@ -502,8 +594,8 @@ public class TestController {
 			return new java.util.ArrayList<>(); // Retornar lista vacía si no se encuentra
 		}
 		
-		// Obtener los detalles del PayBookInstance
-		List<PayBookDetails> listPBD = payBookDetailsRepository.findAllByPayBookInstanceIdAndFamilyId(pbi.getId(), familyId);
+		// Obtener los detalles del PayBookInstance (consulta robusta por ID de instancia)
+		List<PayBookDetails> listPBD = payBookDetailsRepository.findByPayBookInstanceId(pbi.getId());
 		System.out.println("PayBookDetails encontrados: " + listPBD.size());
 
 		// Recalcular valores necesarios para la vista por si provienen de imports antiguos

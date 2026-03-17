@@ -70,16 +70,22 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
                 .antMatchers("/api/ui/health/**").permitAll()
                 // API de configuración general - solo ADMIN
                 .antMatchers("/api/ui/configuracion-general/**").hasRole("ADMIN")
+                // API de Varios (SystemParameter) - escritura solo ADMIN
+                .antMatchers(HttpMethod.PUT, "/api/ui/varios/**").hasRole("ADMIN")
                 // Configuración página
                 .antMatchers("/configuracion/**").permitAll()
                 // Pages served by controllers (JSP views)
                 .antMatchers(HttpMethod.GET, "/clientes").permitAll()
                 .antMatchers(HttpMethod.GET, "/sucursales/**").permitAll()
                 .antMatchers("/charges").permitAll()
+                .antMatchers(HttpMethod.GET, "/procesados").permitAll()
+                .antMatchers("/api/ui/procesados/**").authenticated()
+                .antMatchers(HttpMethod.POST, "/v2/process").authenticated()
                 .antMatchers(HttpMethod.POST, "/importBook2").permitAll()
                 .antMatchers(HttpMethod.GET, "/importBook2").permitAll()
                 .antMatchers(HttpMethod.POST, "/importBookAjax").permitAll()
                 .antMatchers(HttpMethod.GET, "/importBookAjax").permitAll()
+                .antMatchers(HttpMethod.POST, "/importTextAjax").permitAll()
                 .antMatchers(HttpMethod.GET, "/api/paybookdetails").permitAll()
                 .antMatchers(HttpMethod.POST, "/redirectImportBook").permitAll()
                 .antMatchers(HttpMethod.GET, "/redirectImportBook").permitAll()

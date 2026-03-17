@@ -37,6 +37,8 @@ import com.hp.contaSoft.hibernate.entities.TemplateDefiniton;
 import com.hp.contaSoft.hibernate.entities.IUT;
 import com.hp.contaSoft.hibernate.entities.Role;
 import com.hp.contaSoft.hibernate.entities.Subsidiary;
+import com.hp.contaSoft.hibernate.entities.CotizacionEmpleadorLey21735;
+import com.hp.contaSoft.hibernate.dao.repositories.CotizacionEmpleadorLey21735Repository;
 
 @Component
 public class PostConstructBean implements ApplicationListener<ContextRefreshedEvent>{
@@ -50,7 +52,9 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 
 	@Autowired HealthFactorsRepository healthFactorsRepository;
 	@Autowired AFPFactorsRepository afpFactorsrepository;
+	@Autowired com.hp.contaSoft.hibernate.dao.repositories.AfpFactorNicknameRepository afpFactorNicknameRepository;
 	@Autowired IUTRepository iUTRepository;
+	@Autowired CotizacionEmpleadorLey21735Repository cotizacionLey21735Repository;
 	@Autowired GroupCredentialsRepository groupCredentialsRepository;
 
 	@Autowired TaxpayerRepository taxpayerRepository;
@@ -74,7 +78,7 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 	static {
 		//Initialize Template Map
 		uniqueTemplates.put("RENTA",
-				"RUT;CENTRO_COSTO;SUELDO_BASE;DT;PREVISION;SALUD;SALUD_PORCENTAJE;BONO;HORAS_EXTRA;ASIG_FAMILIAR;MOVILIZACION;COLACION;DESGASTE;ALCANCE_LIQUIDO");
+				"RUT;SUELDO_BASE;DT;PREVISION;SALUD");
 		taxpayerTemplates = new HashMap<String,Map<String,String>>();
 		taxpayerTemplates.put("15961703-3", uniqueTemplates);
 		taxpayerTemplates.put("15961705-3", uniqueTemplates);
@@ -109,6 +113,30 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 				afpFactorsrepository.save(new AFPFactors("PLANVITAL",10.41d));
 				afpFactorsrepository.save(new AFPFactors("PROVIDA",11.45d));
 				afpFactorsrepository.save(new AFPFactors("MODELO",10.58d));
+			}
+
+			// Cargar nicknames de AFP si la tabla está vacía
+			if (((java.util.Collection<?>) afpFactorNicknameRepository.findAll()).size() == 0) {
+				System.out.println(">>> Cargando nicknames de AFP...");
+				String[][] nicknames = {
+					{"CAPITAL", "AFP Capital", "Afp Capital"},
+					{"CUPRUM", "AFP Cuprum", "Afp Cuprum"},
+					{"HABITAT", "AFP Habitat", "Afp Habitat", "H\u00e1bitat", "h\u00e1bitat", "AFP H\u00e1bitat"},
+					{"PLANVITAL", "Plan Vital", "plan vital", "AFP Planvital", "AFP Plan Vital", "Afp Planvital"},
+					{"PROVIDA", "ProVida", "AFP Provida", "AFP ProVida", "Afp Provida", "Pr\u00f3vida"},
+					{"MODELO", "AFP Modelo", "Afp Modelo"}
+				};
+				for (String[] entry : nicknames) {
+					AFPFactors afp = afpFactorsrepository.findByNameIgnoreCase(entry[0]);
+					if (afp != null) {
+						for (int i = 1; i < entry.length; i++) {
+							afpFactorNicknameRepository.save(
+								new com.hp.contaSoft.hibernate.entities.AfpFactorNickname(afp.getId(), "GLOBAL", entry[i])
+							);
+						}
+						System.out.println("  " + entry[0] + ": " + (entry.length - 1) + " nicknames");
+					}
+				}
 			}
 
 			// Siempre recargar IUT con valores actualizados (Febrero 2026 - SII)
@@ -156,6 +184,30 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 				templateDetailsRepository.save(new TemplateDefiniton("DESC_PTMO_CCAAFF","Descuento Préstamo CC.AA.FF",true, false));
 				templateDetailsRepository.save(new TemplateDefiniton("DESC_PTMO_SOLIDARIO","Descuento Préstamo Solidario",true, false));
 				templateDetailsRepository.save(new TemplateDefiniton("REGIMEN","Tipo de contrato: INDEFINIDO o PLAZO_FIJO",true, false));
+			}
+
+			// Cotizaciones adicionales empleador - Ley 21.735
+			if (((java.util.Collection<?>) cotizacionLey21735Repository.findAll()).size() == 0) {
+				System.out.println(">>> Cargando tramos Ley 21.735 - Cotizaciones adicionales empleador...");
+				java.util.Calendar cal = java.util.Calendar.getInstance();
+				// a) agosto 2025 a julio 2026: 0.1%, 0%, 0.9%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("a", date(2025, 8, 1), date(2026, 7, 31), 0.1, 0.0, 0.9));
+				// b) agosto 2026 a julio 2027: 0.1%, 0.9%, 2.5%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("b", date(2026, 8, 1), date(2027, 7, 31), 0.1, 0.9, 2.5));
+				// c) agosto 2027 a julio 2028: 0.25%, 1.5%, 2.5%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("c", date(2027, 8, 1), date(2028, 7, 31), 0.25, 1.5, 2.5));
+				// d) agosto 2028 a julio 2029: 1%, 1.5%, 2.5%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("d", date(2028, 8, 1), date(2029, 7, 31), 1.0, 1.5, 2.5));
+				// e) agosto 2029 a julio 2030: 1.7%, 1.5%, 2.5%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("e", date(2029, 8, 1), date(2030, 7, 31), 1.7, 1.5, 2.5));
+				// f) agosto 2030 a julio 2031: 2.4%, 1.5%, 2.5%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("f", date(2030, 8, 1), date(2031, 7, 31), 2.4, 1.5, 2.5));
+				// g) agosto 2031 a julio 2032: 3.1%, 1.5%, 2.5%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("g", date(2031, 8, 1), date(2032, 7, 31), 3.1, 1.5, 2.5));
+				// h) agosto 2032 a julio 2033: 3.8%, 1.5%, 2.5%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("h", date(2032, 8, 1), date(2033, 7, 31), 3.8, 1.5, 2.5));
+				// i) agosto 2033 a julio 2045: 4.5%, 1.5%, 2.5%
+				cotizacionLey21735Repository.save(new CotizacionEmpleadorLey21735("i", date(2033, 8, 1), date(2045, 7, 31), 4.5, 1.5, 2.5));
 			}
 
 
@@ -284,7 +336,7 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 			if (taxpayerRepository.findByRutAndFamilyId("15961705-3", familyId) == null) {
 				Subsidiary subsidiary = new Subsidiary("CHICAUMA 9.1");
 				subsidiary.setFamilyId(familyId);
-				Taxpayer tp3 = new Taxpayer("Copec SA", "15961705-3", add2, familyId, subsidiary);
+				Taxpayer tp3 = new Taxpayer("Copec SA", "15961705-3", add2, familyId, subsidiary,"PLAZO_FIJO");
 				//Taxpayer tp3 = new Taxpayer("Copec SA","15961705-3", add2, familyId);
 				taxpayerRepository.save(tp3);
 				System.out.println(">>> Taxpayer 15961705-3 creado");
@@ -319,6 +371,11 @@ public class PostConstructBean implements ApplicationListener<ContextRefreshedEv
 	}
 
 
-
+	private java.util.Date date(int year, int month, int day) {
+		java.util.Calendar cal = java.util.Calendar.getInstance();
+		cal.set(year, month - 1, day, 0, 0, 0);
+		cal.set(java.util.Calendar.MILLISECOND, 0);
+		return cal.getTime();
+	}
 
 }

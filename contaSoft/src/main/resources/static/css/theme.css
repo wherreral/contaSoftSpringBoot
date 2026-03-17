@@ -49,9 +49,9 @@ body{ background-color: var(--bg-color); color: var(--text-color); }
 /* Card background */
 .client-table-card{ background: var(--bg-card); }
 
-.table-header{ background: var(--table-header-bg); color: var(--bg-card); }
+.table-header{ background: var(--table-header-bg); color: #ffffff; }
 
-.modal-header{ background: var(--modal-header-bg); color: var(--bg-card); }
+.modal-header{ background: var(--modal-header-bg); color: #ffffff; }
 
 .sidebar{ background: var(--sidebar-bg); }
 

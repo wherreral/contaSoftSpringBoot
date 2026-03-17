@@ -271,6 +271,14 @@
         .action-btn:hover {
             transform: scale(1.05);
         }
+
+        .btn-procesado {
+            filter: brightness(0.9);
+        }
+
+        .btn-procesado:hover {
+            filter: brightness(0.82);
+        }
         
         .collapse-section {
             background-color: var(--collapse-bg);
@@ -616,6 +624,12 @@
                                         <i class="bi bi-upload me-2"></i>Ver Cargas
                                     </button>
                                 </form>
+                                <form method="post" action="/procesados" class="mb-2">
+                                    <input type="hidden" name="taxpayerId" value="${Client.id}" />
+                                    <button type="submit" class="btn btn-primary btn-procesado w-100 action-btn">
+                                        <i class="bi bi-check2-circle me-2"></i>Ver Procesado
+                                    </button>
+                                </form>
                                 <div class="btn-group" role="group">
                                     <button type="button" class="btn btn-outline-secondary action-btn" 
                                             onclick="showClientTemplates(${Client.id}, '${Client.name}', '${Client.rut}')">
@@ -738,10 +752,15 @@
         loadNavbar('inicio');
         loadSidebar('inicio');
     </script>
+    <script>
+        window.APP_CONFIG = {
+            API_BASE_URL: '<%= request.getAttribute("apiBaseUrl") != null ? request.getAttribute("apiBaseUrl") : "" %>'
+        };
+    </script>
     
     <!-- Custom JavaScript -->
     <script>
-        const API_BASE = 'http://localhost:8080';
+        const API_BASE = (window.APP_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
         
         // Mostrar templates del cliente
         async function showClientTemplates(clientId, clientName, clientRut) {

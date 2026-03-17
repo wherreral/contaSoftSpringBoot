@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
@@ -78,7 +80,9 @@ public class ReportController {
     }
 
     @GetMapping(value = "/paybook/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
-    public ResponseEntity<StreamingResponseBody> getPaybookPdf(@PathVariable("id") Long id) {
+    public ResponseEntity<StreamingResponseBody> getPaybookPdf(
+            @PathVariable("id") Long id,
+            @RequestParam(required = false) List<String> ruts) {
         long startTotal = System.currentTimeMillis();
         try {
             // Paso 1: Consultar PayBookInstance
@@ -93,8 +97,13 @@ public class ReportController {
             
             // Paso 2: Consultar detalles
             long step2Start = System.currentTimeMillis();
-            List<com.hp.contaSoft.excel.entities.PayBookDetails> details = 
+            List<com.hp.contaSoft.excel.entities.PayBookDetails> details =
                 payBookDetailsRepository.findAllByPayBookInstance_Id(id);
+            if (ruts != null && !ruts.isEmpty()) {
+                details = details.stream()
+                    .filter(d -> d.getRut() != null && ruts.contains(d.getRut()))
+                    .collect(Collectors.toList());
+            }
             long step2Time = System.currentTimeMillis() - step2Start;
             logger.info("⏱️  [2/4] Consulta detalles ({} registros): {} ms", 
                 details != null ? details.size() : 0, step2Time);
@@ -130,6 +139,7 @@ public class ReportController {
             JRMapCollectionDataSource dataSource = new JRMapCollectionDataSource(mappedDetails);
             Map<String, Object> params = new HashMap<>();
             params.put("payBookInstance", opt.get());
+            params.put(net.sf.jasperreports.engine.JRParameter.REPORT_LOCALE, new java.util.Locale("es", "CL"));
 
             JasperPrint jasperPrint = JasperFillManager.fillReport(jasperReport, params, dataSource);
             long step4Time = System.currentTimeMillis() - step4Start;
@@ -183,6 +193,7 @@ public class ReportController {
             // Datos básicos
             m.put("id", d.getId() != null ? d.getId() : 0L);
             m.put("rut", d.getRut() != null ? d.getRut() : "");
+            m.put("nombreTrabajador", d.getNombreTrabajador() != null && !d.getNombreTrabajador().trim().isEmpty() ? d.getNombreTrabajador() : (d.getRut() != null ? d.getRut() : ""));
             m.put("centroCosto", d.getCentroCosto() != null ? d.getCentroCosto() : "");
             m.put("diasTrabajados", d.getDiasTrabajados());
             m.put("prevision", toTitleCase(d.getPrevision()));
@@ -233,6 +244,9 @@ public class ReportController {
             // Aportes empleador
             m.put("afcEmpleador", roundUp(d.getAfcEmpleador()));
             m.put("sisEmpleador", roundUp(d.getSisEmpleador()));
+            m.put("cotCapitalizacion", roundUp(d.getCotCapitalizacion()));
+            m.put("cotRentabilidadProtegida", roundUp(d.getCotRentabilidadProtegida()));
+            m.put("cotExpectativasVidaSis", roundUp(d.getCotExpectativasVidaSis()));
 
             // === Totales calculados por registro ===
 
@@ -366,11 +380,10 @@ public class ReportController {
 
     /**
      * Trunca a 2 decimales y redondea al alza (ceil) para obtener un entero.
-     * Ej: 539000.833 -> truncar -> 539000.83 -> ceil -> 539001
+     * Ej: 2522.44 -> round -> 2522, 2522.55 -> round -> 2523
      */
     private double roundUp(double value) {
-        double truncated = Math.floor(value * 100) / 100;
-        return Math.ceil(truncated);
+        return Math.round(value);
     }
 
     private String toTitleCase(String text) {

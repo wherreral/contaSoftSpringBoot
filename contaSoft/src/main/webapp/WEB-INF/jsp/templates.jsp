@@ -465,6 +465,11 @@
 		loadNavbar('templates');
 		loadSidebar('templates');
 	</script>
+	<script>
+		window.APP_CONFIG = {
+			API_BASE_URL: '<%= request.getAttribute("apiBaseUrl") != null ? request.getAttribute("apiBaseUrl") : "" %>'
+		};
+	</script>
 
 	<script>
 		const isAdmin = parseInt(localStorage.getItem('userRole') || '2') === 1;
@@ -477,7 +482,7 @@
 	<!-- JavaScript de la aplicación -->
     <script>
         // Configuración de la API
-        const API_BASE = 'http://localhost:8080';
+        const API_BASE = (window.APP_CONFIG.API_BASE_URL || '').replace(/\/$/, '');
         
         // Estado de la aplicación
         let currentTemplate = null;

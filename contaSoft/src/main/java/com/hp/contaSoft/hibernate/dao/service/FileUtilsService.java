@@ -158,6 +158,23 @@ public class FileUtilsService {
 						}
 					}
 
+					// Limpiar valores monetarios en cada campo de datos
+					fileContent = new String(fileBytes, "UTF-8");
+					String[] lines = fileContent.split("\n", -1);
+					StringBuilder cleaned = new StringBuilder();
+					cleaned.append(lines[0]); // header sin modificar
+					for (int li = 1; li < lines.length; li++) {
+						cleaned.append("\n");
+						String line = lines[li];
+						String[] fields = line.split(";", -1);
+						for (int fi = 0; fi < fields.length; fi++) {
+							if (fi > 0) cleaned.append(";");
+							String f = fields[fi].trim();
+							cleaned.append(cleanNumericField(f));
+						}
+					}
+					fileBytes = cleaned.toString().getBytes("UTF-8");
+
 					// Parser CSV con OpenCSV
 					Reader reader = new InputStreamReader(new java.io.ByteArrayInputStream(fileBytes));
 					CsvToBean<PayBookDetails> cb = new CsvToBean<>();
@@ -260,6 +277,26 @@ public class FileUtilsService {
 	    		System.err.println("Error leyendo BONO_CALCULATION_METHOD, usando default: " + ex.getMessage());
 	    	}
 
+	    	double sisTasa = 1.54;
+	    	try {
+	    		java.util.List<com.hp.contaSoft.hibernate.entities.SystemParameter> sisParams = systemParameterService.findByNameIgnoreCase("SIS_TASA");
+	    		if (sisParams != null && !sisParams.isEmpty()) {
+	    			sisTasa = Double.parseDouble(sisParams.get(0).getValue().replace(',', '.').trim());
+	    		}
+	    	} catch (Exception ex) {
+	    		System.err.println("Error leyendo SIS_TASA, usando default: " + ex.getMessage());
+	    	}
+
+	    	// Pre-cargar tramo Ley 21.735 según mes/año del PayBookInstance
+	    	com.hp.contaSoft.hibernate.entities.CotizacionEmpleadorLey21735 tramoLey21735 =
+	    		referenceDataCache.findCotizacionEmpleador(pbi.getMonth(), pbi.getYear());
+	    	if (tramoLey21735 != null) {
+	    		System.out.println("Ley 21.735 tramo " + tramoLey21735.getLetra() + ": cap=" + tramoLey21735.getTasaCapitalizacion()
+	    			+ "% rent=" + tramoLey21735.getTasaRentabilidadProtegida() + "% exp=" + tramoLey21735.getTasaExpectativasVidaSis() + "%");
+	    	} else {
+	    		System.out.println("WARN: No se encontró tramo Ley 21.735 para " + pbi.getMonth() + " " + pbi.getYear());
+	    	}
+
 	    	Regimen regimenCliente = Regimen.INDEFINIDO;
 	    	if (pbi.getTaxpayer() != null && pbi.getTaxpayer().getRegimen() != null) {
 	    		regimenCliente = pbi.getTaxpayer().getRegimen();
@@ -350,6 +387,14 @@ public class FileUtilsService {
 				}
 
 				/**
+				 * PASO 3.5: Configurar porcentaje de salud ANTES del cálculo de bono
+				 * Si es FONASA, forzar 7% para que el cálculo algebraico sea correcto
+				 */
+				if (detail.getSalud() != null && detail.getSalud().toUpperCase().contains("FONASA")) {
+					detail.setSaludPorcentaje(7.0);
+				}
+
+				/**
 				 * PASO 4: CÁLCULO AUTOMÁTICO DE BONO (si viene ALCANCE_LIQUIDO)
 				 */
 				if (calcularBonoAutomatico) {
@@ -384,7 +429,19 @@ public class FileUtilsService {
 				 */
 				detail.calculateAfc();
 				detail.calculatePrevision();
+
+				// Si es FONASA, usar porcentaje estándar (7%) independiente del archivo
+				if (detail.getSalud() != null && detail.getSalud().toUpperCase().contains("FONASA")) {
+					detail.setSaludPorcentaje(7.0);
+				}
 				detail.calculateSalud();
+
+				// AUDIT: Comparar AFC del archivo vs calculado
+				if (detail.getAfcArchivoOriginal() != 0) {
+					System.out.println("AUDIT AFC - RUT: " + detail.getRut() +
+						" | Archivo: " + detail.getAfcArchivoOriginal() +
+						" | Calculado: " + detail.getValorAFC());
+				}
 
 				/**
 				 * PASO 6: Calcular totales
@@ -397,10 +454,19 @@ public class FileUtilsService {
 				 * PASO 6b: Calcular aportes empleador
 				 */
 				detail.calculateAfcEmpleador();
-				if (afp != null) {
-					detail.calculateSis(afp.getSisTasa());
-				} else {
-					detail.calculateSis(1.49); // default SIS
+				detail.calculateSis(sisTasa);
+				if (tramoLey21735 != null) {
+					detail.calculateCotizacionesLey21735(
+						tramoLey21735.getTasaCapitalizacion(),
+						tramoLey21735.getTasaRentabilidadProtegida(),
+						tramoLey21735.getTasaExpectativasVidaSis());
+				}
+
+				// AUDIT: Comparar SIS del archivo vs calculado
+				if (detail.getSisArchivoOriginal() != 0) {
+					System.out.println("AUDIT SIS - RUT: " + detail.getRut() +
+						" | Archivo: " + detail.getSisArchivoOriginal() +
+						" | Calculado: " + detail.getSisEmpleador());
 				}
 
 	        	/**
@@ -412,6 +478,13 @@ public class FileUtilsService {
 				if (iutTramo != null) {
 					System.out.println("iut factor=" + iutTramo.getFactor() + " rebaja=" + iutTramo.getQuantity());
 					detail.calculateValorUIT(iutTramo.getFactor(), iutTramo.getQuantity());
+				}
+
+				// AUDIT: Comparar IUT del archivo vs calculado
+				if (detail.getIutArchivoOriginal() != 0) {
+					System.out.println("AUDIT IUT - RUT: " + detail.getRut() +
+						" | Archivo: " + detail.getIutArchivoOriginal() +
+						" | Calculado: " + detail.getValorIUT());
 				}
 
 				/**
@@ -484,6 +557,8 @@ public class FileUtilsService {
 		}
 		catch(Exception e) {
 			e.printStackTrace();
+			pmInput.setValid(false);
+			pmInput.setErrorMessageOutput("Error procesando archivo: " + e.getMessage());
 		}
 		
 		return pmInput;
@@ -544,23 +619,15 @@ public class FileUtilsService {
 			
             
             //save PayBookInstance
-            tax.getPayBookInstance().add(pbi);
-            Taxpayer savedTax = taxpayerRepository.save(tax);
-            
-            // Obtener el PayBookInstance con ID desde el Taxpayer guardado
-            // Buscar el PayBookInstance que acabamos de agregar (el último con la version correcta)
-            PayBookInstance savedPbi = null;
-            for (PayBookInstance instance : savedTax.getPayBookInstance()) {
-                if (instance.getVersion() == pbi.getVersion() && instance.getRut().equals(pbi.getRut())) {
-                    savedPbi = instance;
-                    break;
-                }
-            }
-            
-            if (savedPbi != null) {
-                pbi = savedPbi; // Usar la instancia con ID
-                pmInput.setPayBookInstance(pbi);
-            }
+			//tax.getPayBookInstance().add(pbi);
+			pbi.setTaxpayer(tax);
+			payBookInstanceRepository.save(pbi);
+			//tax.addPayBookInstance(pbi);
+			//taxpayerRepository.save(tax);
+			//taxpayerRepository.flush();
+
+			// Usar la instancia recién persistida directamente (evita ambigüedad por rut+version entre meses)
+			pmInput.setPayBookInstance(pbi);
             
             System.out.println("tax="+tax);
             System.out.println("PayBookInstance guardado con ID: " + pbi.getId());
@@ -633,6 +700,52 @@ public class FileUtilsService {
 	}
 	
 	
+	/**
+	 * Limpia un campo CSV que podría ser numérico/monetario.
+	 * "$ 1.600.000" -> "1600000", "539,000" -> "539000", texto normal queda igual.
+	 */
+	private static String cleanNumericField(String f) {
+		if (f == null || f.isEmpty()) return f;
+
+		// Guión solo o doble guión = cero
+		if (f.equals("-") || f.equals("--")) return "0";
+
+		// Quitar $ y espacios
+		String stripped = f.replace("$", "").replace(" ", "").trim();
+
+		// Si después de limpiar no parece numérico, devolver original
+		if (stripped.isEmpty() || !stripped.matches("-?[\\d.,]+")) return f;
+
+		// Tiene punto y coma: formato ambiguo
+		if (stripped.contains(",") && stripped.contains(".")) {
+			// El último separador es el decimal
+			if (stripped.lastIndexOf(",") > stripped.lastIndexOf(".")) {
+				// 1.600,50 -> 1600.50
+				stripped = stripped.replace(".", "").replace(",", ".");
+			} else {
+				// 1,600.50 -> 1600.50
+				stripped = stripped.replace(",", "");
+			}
+		} else if (stripped.contains(".")) {
+			// Solo puntos: 1.600.000 (miles) o 1600.50 (decimal)
+			String[] parts = stripped.split("\\.");
+			if (parts.length > 2 || (parts.length == 2 && parts[1].length() == 3)) {
+				stripped = stripped.replace(".", "");
+			}
+			// else: es decimal normal, dejar como está
+		} else if (stripped.contains(",")) {
+			// Solo comas: 1,600,000 (miles) o 1600,50 (decimal)
+			String[] parts = stripped.split(",");
+			if (parts.length > 2 || (parts.length == 2 && parts[1].length() == 3)) {
+				stripped = stripped.replace(",", "");
+			} else {
+				stripped = stripped.replace(",", ".");
+			}
+		}
+
+		return stripped;
+	}
+
 	public PipelineMessage validateFileName(PipelineMessage pmInput) {
 		
 		String fileName = pmInput.getFileNameInput();
@@ -755,11 +868,12 @@ public class FileUtilsService {
         				workbook.close();
         				return pmOutput;
         			}
+        			org.apache.poi.ss.usermodel.DataFormatter dataFormatter = new org.apache.poi.ss.usermodel.DataFormatter();
         			StringBuilder sb = new StringBuilder();
         			for (int i = 0; i < headerRow.getLastCellNum(); i++) {
         				org.apache.poi.ss.usermodel.Cell cell = headerRow.getCell(i);
         				if (cell != null) {
-        					String val = cell.getStringCellValue().trim();
+        					String val = dataFormatter.formatCellValue(cell).trim();
         					if (!val.isEmpty()) {
         						if (sb.length() > 0) sb.append(";");
         						sb.append(val);
