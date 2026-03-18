@@ -9,6 +9,8 @@ EXPOSE 8080
 ENTRYPOINT ["java", \
  "--add-opens", "java.base/java.lang=ALL-UNNAMED", \
  "--add-opens", "java.base/java.lang.reflect=ALL-UNNAMED", \
+ "--add-opens", "java.base/java.util=ALL-UNNAMED", \
+ "--add-opens", "java.base/java.util.concurrent=ALL-UNNAMED", \
  "-Dspring.datasource.url=jdbc:postgresql://${DB_HOST}:${DB_PORT}/${DB_NAME}", \
  "-Dspring.datasource.username=${DB_USER}", \
  "-Dspring.datasource.password=${DB_PASSWORD}", \
