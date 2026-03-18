@@ -69,7 +69,7 @@ public class ReportControllerPerformanceTest {
 
         // Paso 3: Generar PDF completo
         long startPdf = System.currentTimeMillis();
-        ResponseEntity<StreamingResponseBody> response = reportController.getPaybookPdf(testId);
+        ResponseEntity<StreamingResponseBody> response = reportController.getPaybookPdf(testId, new java.util.ArrayList<>());
         long endPdf = System.currentTimeMillis();
         logger.info("⏱️  Tiempo generación PDF (preparación): {} ms", (endPdf - startPdf));
 
@@ -113,7 +113,7 @@ public class ReportControllerPerformanceTest {
         for (int i = 0; i < iterations; i++) {
             long start = System.currentTimeMillis();
             
-            ResponseEntity<StreamingResponseBody> response = reportController.getPaybookPdf(testId);
+            ResponseEntity<StreamingResponseBody> response = reportController.getPaybookPdf(testId, new java.util.ArrayList<>());
             if (response.getBody() != null) {
                 ByteArrayOutputStream baos = new ByteArrayOutputStream();
                 response.getBody().writeTo(baos);
